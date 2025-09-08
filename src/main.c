@@ -1,15 +1,16 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
 #include "../include/FreeRTOSConfig.h"
-#include "FreeRTOS/Source/include/task.h"
-#include "FreeRTOS/Source/include/FreeRTOS.h"
+
 
 //Standard Task priority
 #define TASK_PRIORITY		( tskIDLE_PRIORITY + 1UL )
 
 //LED PAD to use
-#define LED_PAD				0
+#define LED_PAD				22
 
 //Blink Delay
 #define DELAY				500
@@ -51,10 +52,10 @@ void vLaunch( void) {
     vTaskStartScheduler();
 }
 
-/***
- * Main
- * @return
- */
+// /***
+//  * Main
+//  * @return
+//  */
 int main( void )
 {
 	//Setup serial over USB and give a few seconds to settle before we start
@@ -62,10 +63,26 @@ int main( void )
     sleep_ms(2000);
     printf("GO\n");
 
+    printf("Main task started\n");
+
+	const uint ledPad = LED_PAD;
+	gpio_init(ledPad);
+
+	gpio_set_dir(ledPad, GPIO_OUT);
+
+	while (true) { // Loop forever
+		gpio_put(ledPad, 1);
+        sleep_ms(500);
+		//vTaskDelay(DELAY);
+		gpio_put(ledPad, 0);
+        sleep_ms(500);
+		//vTaskDelay(DELAY);
+	}
+
     //Start tasks and scheduler
-    const char *rtos_name = "FreeRTOS";
-    printf("Starting %s on core 0:\n", rtos_name);
-    vLaunch();
+    // const char *rtos_name = "FreeRTOS";
+    // printf("Starting %s on core 0:\n", rtos_name);
+    // vLaunch();
 
 
     return 0;

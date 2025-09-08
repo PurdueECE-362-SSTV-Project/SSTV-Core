@@ -39,8 +39,8 @@
 #define configSUPPORT_STATIC_ALLOCATION                             1
 #define configSUPPORT_DYNAMIC_ALLOCATION                            1
 #define configTOTAL_HEAP_SIZE                                       10240
-#define configAPPLICATION_ALLOCATED_HEAP                            1
-#define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP                   1
+#define configAPPLICATION_ALLOCATED_HEAP                            0
+#define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP                   0
 
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK                                 0
@@ -71,7 +71,8 @@
 #define configMAX_API_CALL_INTERRUPT_PRIORITY   //[dependent on processor and application]
 
 /* Define to trap errors during development. */
-#define configASSERT ( x ) if( ( x ) == 0 ) { vAssertCalled( __FILE__, __LINE__ ); } //taskDISABLE_INTERRUPTS(); for( ;; ); } uncomment to pause when debugging
+void vAssertCalled( const char * pcFile, unsigned long ulLine );
+#define configASSERT( x ) if((x)== 0) vAssertCalled( __FILE__, __LINE__ )//taskDISABLE_INTERRUPTS(); for( ;; ); } uncomment to pause when debugging
 
 /* FreeRTOS MPU specific definitions. */
 #define configINCLUDE_APPLICATION_DEFINED_PRIVILEGED_FUNCTIONS 0
@@ -87,7 +88,7 @@
 #define configRUN_FREERTOS_SECURE_ONLY            1
 #define configENABLE_MPU                                        1
 #define configENABLE_FPU                                        1
-#define configENABLE_MVE                                        1
+#define configENABLE_MVE                                        0
 
 /* ARMv8-M secure side port related definitions. */
 #define secureconfigMAX_SECURE_CONTEXTS         5
@@ -119,6 +120,7 @@
 #define configENABLE_FPU 1
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY 16
 #define configCPU_CLOCK_HZ 150000000
+#define configSUPPORT_STATIC_ALLOCATION 0
 #endif
 /* A header file that defines trace macro can be included here. */
 

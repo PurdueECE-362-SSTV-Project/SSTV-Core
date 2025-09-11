@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 
-#include "../include/test.h"
-
 
 void config_pin() {
     gpio_set_dir(23, true);

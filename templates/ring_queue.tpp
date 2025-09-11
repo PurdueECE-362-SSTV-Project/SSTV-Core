@@ -50,7 +50,7 @@ Optional<T> RingQueue<T>::pop_front() {
 
 
 template<typename T>
-Optional<T> RingQueue<T>::push_back(const T value) {
+bool RingQueue<T>::push_back(const T value) {
     if(this->full()) {
         return false;
     }

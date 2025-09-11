@@ -1,0 +1,9 @@
+#ifndef APP_CONFIG_H
+#define APP_CONFIG_H
+
+
+#define ENABLE_SHARED_MEMORY 1
+#define ENABLE_FIFO_MESSAGING 1
+
+
+#endif

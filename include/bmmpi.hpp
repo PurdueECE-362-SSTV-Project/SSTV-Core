@@ -7,15 +7,17 @@
 #include "pico/stdlib.h"
 #include "pico/sync.h"
 #include "types.hpp"
+#include "AppConfig.h"
 
 
+#if ENABLE_FIFO_MESSAGING == 1
 #define FIFO_TAIL INT32_MAX
 
 typedef struct SFIFOMessage {
     int dest_id;
     int source_id;
-    uint32_t* data;
     int data_size;
+    uint32_t* data;
     int tail = FIFO_TAIL;
 } SFIFOMessage;
 SFIFOMessage construct_message(int dest_id, int source_id, uint32_t* data, int data_size);
@@ -109,9 +111,7 @@ class SenderQueue : protected AtomicQueue<SFIFOMessage> {
 
 class ReceiverQueue: protected AtomicQueue<RFIFOMessage> {
     private:
-        MessageLoader loader;
-        RingQueue<RFIFOMessage>* internal_queues; // index corresponds to target id
-        int num_queues = 0;
+        RingQueue<RFIFOMessage> internal_queue; // index corresponds to target id
     protected:
         bool atomic_push_proc(RFIFOMessage value) override;
         Optional<RFIFOMessage> atomic_pop_proc() override;
@@ -120,17 +120,28 @@ class ReceiverQueue: protected AtomicQueue<RFIFOMessage> {
 };
 
 
-class ReceiverQueueBuilder {
-    private: 
-        RingQueue<RFIFOMessage>* internal_queues; // index corresponds to target id how does receiver know which queue to eat from?
-        int num_queues = 0;
-        int max_queues;
-    public:
-        ReceiverQueueBuilder(int max_queues);
-        ReceiverQueueBuilder attach_queue(int size);
-        ReceiverQueue finish_building(); // make sure to actually hand off the pointer to the queue so the builder deallocating doesnt leave dangling pointer
+// governs the state of the ReceiverQueueBlock for decoding messages and deciding where they go
+typedef enum MessageReceiveStage {
+    RECEIVE_DEST,
+    RECEIVE_SOURCE,
+    RECEIVE_SIZE,
+    RECEIVE_DATA,
+} MessageReceiveStage;
 
-        ~ReceiverQueueBuilder();
+
+class ReceiverQueueBlock {
+    private:
+        int num_queues = 0;
+        ReceiverQueue* internal_queues;
+        MessageLoader loader;
+        int selected_queue = 0;
+    public:
+        ReceiverQueueBlock(int num_queues, ReceiverQueue* queues);
+        Optional<RFIFOMessage> pop(int queue_id);
+        bool push(uint32_t frame); // must have a mechanism to notify the target task of a completed push to the queue so that can be popped and processed
+        void trigger_task(int queue_id);
+
+        ~ReceiverQueueBlock();
 };
 
 
@@ -142,10 +153,40 @@ typedef struct MPISR {
 
 class MPSender {
     private:
-    
+        SenderQueue queue;
+
+    public:
+        MPSender(MPISR submit_isr, MPISR receive_empty_isr, MPISR watchdog_isr, int max_queue_size);
 };
 
-// add memory sharing here
+
+class MPReceiver {
+    private:
+        ReceiverQueueBlock block;
+    public:
+        bool route_messages(); // return false if no messages were routed. This should retrieve from the FIFO queue
+};
+
+
+class MPReceiverBuilder {
+    private: 
+        ReceiverQueue* internal_queues; // index corresponds to target id how does receiver know which queue to eat from?
+        int num_queues = 0;
+        int max_queues;
+    public:
+        MPReceiverBuilder(int max_queues);
+        MPReceiverBuilder add_receiver(void* MPISR, int buffer_size); // throw an error if ever exceed the max number of queues, since this happen only at startup
+        // the ISR is to be triggered artificially by an unused GPIO interrupt register
+        // this is done so that immediate execution isnt needed. If it is low priority, the interrupt trigger is just a statement of: "this will be done sometime in the future"
+        MPReceiver finish_building(); // make sure to actually hand off the pointer to the queue so the builder deallocating doesnt leave dangling pointer
+
+        ~MPReceiverBuilder();
+};
+#endif // ENABLE_FIFO_MESSAGING == 1
+
+#if ENABLE_SHARED_MEMORY == 1
+
+#endif // ENABLE_SHARED_MEMORY == 1
 
 
 #endif

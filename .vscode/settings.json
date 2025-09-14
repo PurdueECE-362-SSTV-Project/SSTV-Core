@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "multicore.h": "c"
+        "multicore.h": "c",
+        "pico.h": "c",
+        "adafruit_tftlcd.h": "c",
+        "touchscreen.h": "c"
     }
 }

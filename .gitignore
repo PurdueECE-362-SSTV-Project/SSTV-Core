@@ -39,3 +39,13 @@
 
 # debug information files
 *.dwo
+.pio/
+.vscode/
+./tests/local_unittest/build/
+./tests/local_unittest/CMakeFiles/
+./tests/local_unittest/cmake_install.cmake
+./tests/local_unittest/Makefile
+./tests/local_unittest/*.cmake
+./test/local_unittest/CMakeCache.txt
+./test/local_unittest/bin/
+./test/local_unittest/lib/

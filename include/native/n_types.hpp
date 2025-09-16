@@ -1,5 +1,5 @@
-#ifndef TYPES_HPP
-#define TYPES_HPP
+#ifndef N_TYPES_HPP
+#define N_TYPES_HPP
 
 
 template <typename T>
@@ -17,7 +17,7 @@ class Optional {
 };
 
 
-#include "templates/optional.tpp"
+#include "optional.tpp"
 
 
 #endif

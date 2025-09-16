@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "native/bmmpi_native.hpp"
-#include "native/types.hpp"
+#include "native/n_bmmpi.hpp"
+#include "native/n_types.hpp"
 #include "AppConfig.h"
 
 

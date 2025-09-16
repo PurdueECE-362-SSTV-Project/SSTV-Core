@@ -41,6 +41,8 @@
 *.dwo
 .pio/
 .vscode/
+./.pio
+./.vscode
 ./tests/local_unittest/build/
 ./tests/local_unittest/CMakeFiles/
 ./tests/local_unittest/cmake_install.cmake

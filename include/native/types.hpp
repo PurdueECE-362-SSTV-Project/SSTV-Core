@@ -17,4 +17,7 @@ class Optional {
 };
 
 
+#include "templates/optional.tpp"
+
+
 #endif

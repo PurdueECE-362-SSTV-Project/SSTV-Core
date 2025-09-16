@@ -1,12 +1,12 @@
-#include "types.hpp"
+#include "native/types.hpp"
 
 
 template<typename T>
-Optional<T>::Optional() : is_some(false) {}
+Optional<T>::Optional() : some(false) {}
 
 
 template<typename T>
-Optional<T>::Optional(T value) : is_some(true), value(value) {}
+Optional<T>::Optional(T value) : some(true), value(value) {}
 
 
 template<typename T>

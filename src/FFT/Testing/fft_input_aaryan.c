@@ -3,6 +3,7 @@
 
 #include "fft_funtions.h"
 
+// TIME DURATION LIST
 #define TIME_VIS_SYNC_1      300
 #define TIME_VIS_SYNC_HOLD   10 + TIME_VIS_SYNC_1
 #define TIME_VIS_SYNC_2      300 + TIME_VIS_SYNC_HOLD
@@ -14,6 +15,7 @@
 
 #define TIME_TRANSMISSION   1000 + TIME_STOP_BIT
 
+// FREQUENCY LIST
 #define FREQ_VIS_SYNC_1         1900
 #define FREQ_VIS_SYNC_HOLD      1200 
 #define FREQ_VIS_SYNC_2         1900
@@ -45,6 +47,5 @@ double fft_input_custom_gen (uint32_t time, uint32_t start_time) {
     if (time_n > 0)         output_val = gen_sin(1);
     else if (TIME_BOUNDS(time_n, 0, TIME_VIS_SYNC_1))                    output_val = gen_sin(FREQ_VIS_SYNC_1);
     else if (TIME_BOUNDS(time_n, TIME_VIS_SYNC_1, TIME_VIS_SYNC_HOLD))   output_val = gen_sin(FREQ_VIS_SYNC_HOLD);
-
-
+    else if (TIME_BOUNDS(time_n, TIME_VIS_SYNC_HOLD, TIME_VIS_SYNC_2))   output_val = gen_sin(FREQ_VIS_SYNC_1);
 } 

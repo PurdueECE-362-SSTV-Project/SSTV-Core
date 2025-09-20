@@ -173,6 +173,7 @@
                 "/Users/AaryanPanigrahi/.platformio/packages/framework-picosdk/src/rp2_common/pico_standard_link/include",
                 "/Users/AaryanPanigrahi/.platformio/packages/framework-picosdk/src/rp2_common/pico_fix/include",
                 "/Users/AaryanPanigrahi/.platformio/packages/framework-picosdk/src/rp2350/boot_stage2/asminclude",
+                "/Users/AaryanPanigrahi/Documents/Coding_Stuff/SSTV Project/SSTV-Core/lib/kissfft",
                 ""
             ],
             "browse": {
@@ -343,6 +344,7 @@
                     "/Users/AaryanPanigrahi/.platformio/packages/framework-picosdk/src/rp2_common/pico_standard_link/include",
                     "/Users/AaryanPanigrahi/.platformio/packages/framework-picosdk/src/rp2_common/pico_fix/include",
                     "/Users/AaryanPanigrahi/.platformio/packages/framework-picosdk/src/rp2350/boot_stage2/asminclude",
+                    "/Users/AaryanPanigrahi/Documents/Coding_Stuff/SSTV Project/SSTV-Core/lib/kissfft",
                     ""
                 ]
             },

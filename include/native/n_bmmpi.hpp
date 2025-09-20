@@ -3,6 +3,7 @@
 
 
 #include <limits.h>
+#include <cstdint>
 #include "native/n_types.hpp"
 
 #include "AppConfig.h"
@@ -16,17 +17,14 @@
 #define FIFO_SOURCE_ID_SIZE 3
 #define FIFO_DATA_SIZE 26
 
-#ifndef FIFO_DEST_ID_MAX
+#if FIFO_DEST_ID_SIZE + FIFO_SOURCE_ID_SIZE + FIFO_DATA_SIZE != 32
+#error "FIFO message bit sizes must add up to 32"
+#endif
+
 #define FIFO_DEST_ID_MAX ((1u << FIFO_DEST_ID_SIZE) - 1u)
-#endif
-
-#ifndef FIFO_SOURCE_ID_MAX
 #define FIFO_SOURCE_ID_MAX ((1u << FIFO_SOURCE_ID_SIZE) - 1u)
-#endif
-
-#ifndef FIFO_DATA_MAX
 #define FIFO_DATA_MAX ((1u << FIFO_DATA_SIZE) - 1u)
-#endif
+
 
 
 /**
@@ -53,6 +51,8 @@ typedef struct FIFOMessage {
     unsigned int data : FIFO_DATA_SIZE;
 } FIFOMessage;
 bool construct_message(unsigned int dest_id, unsigned int source_id, unsigned int data, FIFOMessage* msg_out);
+uint32_t message_to_uint32(FIFOMessage msg);
+FIFOMessage message_from_uint32(uint32_t raw);
 
 
 #ifndef RING_QUEUE_BUFFER_SIZE

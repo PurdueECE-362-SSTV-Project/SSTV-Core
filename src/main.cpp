@@ -9,6 +9,7 @@
 #include "pico/multicore.h"
 #include "native/n_bmmpi.hpp"
 #include "native/n_types.hpp"
+#include "board/bmmpi.hpp"
 #include "AppConfig.h"
 
 
@@ -115,6 +116,7 @@ int main (void) {
     // // Inisializing ISQs
     // init_keypad_irq();
 
+    
     return 0;
 }
 

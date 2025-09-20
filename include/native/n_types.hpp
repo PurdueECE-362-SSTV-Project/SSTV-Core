@@ -17,6 +17,13 @@ class Optional {
 };
 
 
+template <typename T>
+uint32_t to_uint32(T value);
+
+
+float to_float(uint32_t raw);
+
+
 #include "optional.tpp"
 
 

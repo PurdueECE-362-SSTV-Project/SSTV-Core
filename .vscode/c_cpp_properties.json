@@ -173,7 +173,7 @@
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2_common/pico_standard_link/include",
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2_common/pico_fix/include",
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2350/boot_stage2/asminclude",
-                "C:/Users/andre/Downloads/SSTV-Core/lib/fftw-3.3.10",
+                "C:/Users/andre/Downloads/SSTV-Core/lib/kissfft",
                 ""
             ],
             "browse": {
@@ -344,7 +344,7 @@
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2_common/pico_standard_link/include",
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2_common/pico_fix/include",
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2350/boot_stage2/asminclude",
-                    "C:/Users/andre/Downloads/SSTV-Core/lib/fftw-3.3.10",
+                    "C:/Users/andre/Downloads/SSTV-Core/lib/kissfft",
                     ""
                 ]
             },

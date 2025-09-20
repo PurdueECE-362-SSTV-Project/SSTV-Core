@@ -3,6 +3,10 @@
         "multicore.h": "c",
         "pico.h": "c",
         "adafruit_tftlcd.h": "c",
-        "touchscreen.h": "c"
+        "touchscreen.h": "c",
+        "stdio.h": "c",
+        "adafruit_gfx.h": "c",
+        "adafruit_i2cdevice.h": "c",
+        "adafruit_spidevice.h": "c"
     }
 }

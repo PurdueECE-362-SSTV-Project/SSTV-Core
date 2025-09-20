@@ -2,15 +2,15 @@
 #define _ADAFRUIT_GFX_H
 
 #if ARDUINO >= 100
-#include "Arduino.h"
-#include "Print.h"
-#else
-#include "WProgram.h"
+  #include "Arduino.h"
+  #include "Print.h"
+//#else
+//  #include "WProgram.h"
 #endif
 #include "gfxfont.h"
 
-#include <Adafruit_I2CDevice.h>
-#include <Adafruit_SPIDevice.h>
+#include "../lib/Adafruit_BusIO-master/Adafruit_I2CDevice.h"
+#include "../lib/Adafruit_BusIO-master/Adafruit_SPIDevice.h"
 
 /// A generic graphics superclass that can handle all sorts of drawing. At a
 /// minimum you can subclass and provide drawPixel(). At a maximum you can do a

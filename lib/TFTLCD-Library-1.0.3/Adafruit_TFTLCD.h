@@ -9,10 +9,9 @@
 #if ARDUINO >= 100
 #include "Arduino.h"
 #else
-#include "WProgram.h"
 #endif
 
-#include <Adafruit_GFX.h>
+#include "../lib/Adafruit-GFX-Library-1.12.1/Adafruit_GFX.h"
 
 // **** IF USING THE LCD BREAKOUT BOARD, COMMENT OUT THIS NEXT LINE. ****
 // **** IF USING THE LCD SHIELD, LEAVE THE LINE ENABLED:             ****

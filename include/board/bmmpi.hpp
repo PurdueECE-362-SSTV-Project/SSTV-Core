@@ -4,6 +4,7 @@
 
 
 #include <limits>
+#include <cstdint>
 #include "pico/stdlib.h"
 #include "pico/sync.h"
 #include "pico/multicore.h"
@@ -12,6 +13,20 @@
 #include "native/n_bmmpi.hpp"
 #include "native/n_types.hpp"
 #include "AppConfig.h"
+
+
+template <typename T, int N>
+class AtomicQueue {
+    protected: 
+        critical_section at_queue_cs;
+        virtual bool atomic_push_proc(T value);
+        virtual T atomic_pop_proc();
+    public:
+        bool is_full();
+        bool is_empty();
+        bool atomic_push(T value);
+        T atomic_pop();
+};
 
 
 #if ENABLE_FIFO_MESSAGING == 1
@@ -26,23 +41,9 @@ void init_fifo_irq_core0();
 void init_fifo_irq_core1();
 
 
-template <typename T>
-class AtomicQueue {
-    protected: 
-        critical_section at_queue_cs;
-        virtual bool atomic_push_proc(T value);
-        virtual T atomic_pop_proc();
-    public:
-        bool is_full();
-        bool is_empty();
-        bool atomic_push(T value);
-        T atomic_pop();
-};
-
-
 class SenderQueue : protected AtomicQueue<FIFOMessage> {
     private:
-        RingQueue<FIFOMessage> internal_queue;
+        RingQueue<FIFOMessage, RING_QUEUE_BUFFER_SIZE> internal_queue;
     protected:
         bool atomic_push_proc(FIFOMessage value) override;
         FIFOMessage atomic_pop_proc() override;
@@ -53,6 +54,32 @@ class SenderQueue : protected AtomicQueue<FIFOMessage> {
 
 
 #endif // ENABLE_FIFO_MESSAGING == 1
+
+#if ENABLE_MERRY_MEMORY == 1 
+
+
+class MerryMemoryBlock {
+    private:
+        AtomicQueue<T, MERRY_MEMORY_BLOCK_COUNT>
+    public: 
+
+};
+
+template <typename T>
+using MerryTaskFunction = void (*)(T* buffer_address);
+
+template<typename T, int N>
+class MerryTask {
+    private: 
+        AtomicQueue<T, N>& inbound_queue;
+        AtomicQueue<T, N> outbound_queue;
+        MerryTaskFunction<T> function;
+
+    public:
+        register_interrupt();
+};
+
+#endif // ENABLE_MERRYGOROUND_MEMORY == 1
 
 #if ENABLE_SHARED_MEMORY == 1
 
@@ -75,6 +102,7 @@ class SharableBuffer {
 };
 
 #endif // ENABLE_SHARED_MEMORY == 1
+
 
 #if ENABLE_DMA_MESSAGING == 1
 

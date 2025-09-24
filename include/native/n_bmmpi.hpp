@@ -65,10 +65,10 @@ FIFOMessage message_from_uint32(uint32_t raw);
 
 #define RING_QUEUE_BUFFER_MASK (RING_QUEUE_BUFFER_SIZE - 1)
 
-template <typename T>
+template <typename T, int N>
 class RingQueue {
     private: 
-        T data[RING_QUEUE_BUFFER_SIZE];
+        T data[N];
         T default_value;
         unsigned int head = 0;
         unsigned int tail = 0;

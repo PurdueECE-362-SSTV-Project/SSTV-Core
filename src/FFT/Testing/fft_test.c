@@ -13,8 +13,7 @@
 // #define WSIZE 10 // Winsow size in ms
 // #define NWINDOW 
 
-// gcc -o fft_run fft_test.c fft_input_aaryan.c fft_funtions.h
-// gcc -o fft_test.c fft_input_aaryan.c fft_funtions.h -lm
+// gcc -o fft_run fft_test.c fft_input_aaryan.c fft_funtions.h -lm -Wall -Wextra
 // Main function handles frequency input/output operations.
 int main() {
     float *inputSignal; // The full input signal

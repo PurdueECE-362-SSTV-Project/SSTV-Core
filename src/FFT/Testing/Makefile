@@ -1,13 +1,37 @@
 CC = gcc
-CFLAGS = -g -I. -Wall -Wextra
-LDFLAGs = -lm
+CFLAGS = -g -Wall -Wextra 
+CPPFLAGS  = -I. -I../../../lib/kissfft-master
+LDFLAGS = -lm
 DEPS = fft_functions.h
 
-%.o: %.c $(DEPS)
-	$(CC) -c -o $@ @< (CFLAGS)
+#App sources
+APP_SRC  = fft_test.c fft_input_aaryan.c
 
-FFT: fft_test.o fft_input_aaryan.o
-	$(CC) -o fft_run fft_test.o fft_input_aaryan.o $(LDFLAGs) $(CFLAGS)
+#KISS_FFT sources
+KISS_DIR = ../../../lib/kissfft-master
+KISS_SRC = $(KISS_DIR)/kiss_fft.c $(KISS_DIR)/kiss_fftr.c
 
+#Build sets
+SRC   = $(APP_SRC) $(KISS_SRC)
+OBJ   = $(SRC:.c=.o)
+DEPD  = $(OBJ:.o=.d)  
+HEADS = fft_functions.h       
+
+.PHONY: clean always
+
+
+all: fft
+
+%.o: %.c $(DEPS) always
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+
+#Run FFT Tests
+fft: $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LDFLAGS)
+	./fft
+
+#Remove executable files
 clean:
-	$(RM) fft_test.o fft_input_aaryan.o
+	$(RM) fft_test.o fft_input_aaryan.o fft_run
+
+-include $(DEPS)

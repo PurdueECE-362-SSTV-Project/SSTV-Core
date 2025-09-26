@@ -1,25 +1,30 @@
+#include "../../../lib/kissfft-master/kiss_fft.h"
+#include "../../../lib/kissfft-master/kiss_fftr.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 
 #include "fft_funtions.h"
 
 #define NFFT 1024 // Number of sampling points in the DFT
 #define SRATE 11025 // Sampling Frequency 11025Hz 
-# define M_PI           3.14159265358979323846
+#define M_PI           3.14159265358979323846
 // #define WSIZE 10 // Winsow size in ms
 // #define NWINDOW 
 
+// gcc -o fft_run fft_test.c fft_input_aaryan.c fft_funtions.h
+// gcc -o fft_test.c fft_input_aaryan.c fft_funtions.h -lm
 // Main function handles frequency input/output operations.
 int main() {
-    double *inputSignal; // The full input signal
+    float *inputSignal; // The full input signal
     int signalLength = 4096; // n
     int hopSize = NFFT / 2; // H, 50% overlap test
     int numFrames = (signalLength - NFFT) / hopSize + 1;
-    double window[NFFT]; // w
+    float window[NFFT]; // w
     
-    double mags[NFFT/2 + 1];
-    double max_mag = 0;
+    float mags[NFFT/2 + 1];
+    float max_mag = 0;
     int max_index = 0;
 
     // Signal allocation
@@ -45,9 +50,9 @@ int main() {
     }
     
     // Allocate
-    double *in_r = malloc(sizeof(double)*NFFT);
+    float *in_r = malloc(sizeof(double)*NFFT);
     kiss_fft_cpx *out_c = malloc(sizeof(kiss_fft_cpx)*(NFFT/2+1));
-    kiss_fft_cfg cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
+    kiss_fftr_cfg cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
 
 
     for (int frame = 0; frame < numFrames; frame++) {

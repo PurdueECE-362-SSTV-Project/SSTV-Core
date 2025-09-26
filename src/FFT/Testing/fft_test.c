@@ -7,9 +7,6 @@
 
 #include "fft_functions.h"
 
-#define NFFT 1024 // Number of sampling points in the DFT
-#define SRATE SAMPLING_FREQUENCY // Sampling Frequency 11025Hz 
-#define M_PI           3.14159265358979323846
 // #define WSIZE 10 // Winsow size in ms
 // #define NWINDOW 
 
@@ -35,7 +32,9 @@ int main() {
 
     // Initialize inputSignal with data
     for (int i = 0; i < signalLength; i++) {
-        inputSignal[i] = sin(2 * M_PI * signalLength * i / SRATE); 
+        // inputSignal[i] = sin(2 * M_PI * 5500 * i / SFREQ); 
+        // printf("Test: %d\n", i);
+        inputSignal[i] = fft_input_custom_gen(i);
     }
 
     // Initialize freqency array
@@ -72,14 +71,14 @@ int main() {
 
         // Process spectrum
         for (int k = 0; k <= NFFT/2; k++) {
-            // float freq = k * (float)SRATE / NFFT; 
+            // float freq = k * (float)SFREQ / NFFT; 
             mags[k]  = sqrt(out_c[k].r*out_c[k].r + out_c[k].i*out_c[k].i);
             if (mags[k] > max_mag) {
                 max_mag = mags[k];
                 max_index = k;
             }
         }
-        printf("Frame %d max freq: %6.1f Hz with magnitude %f\n", frame, max_index * (float)SRATE / NFFT, max_mag);
+        printf("Frame %d max freq: %6.1f Hz with magnitude %f\n", frame, max_index * (float)SFREQ / NFFT, max_mag);
     }
     
     // Cleanup

@@ -7,62 +7,73 @@
 
 #include "fft_functions.h"
 
-// #define WSIZE 10 // Winsow size in ms
-// #define NWINDOW 
+// Fucnctions:
+float fft_input_custom_gen(float);
+float* inputStore(float*, int);
+float* winInit(float*, int);
 
-// gcc -o fft_run fft_test.c fft_input_aaryan.c fft_funtions.h -lm -Wall -Wextra
+//Allocs and store input data in pointer
+float* inputStore(float *signal, int length) {
+    signal = malloc(length * sizeof(float)); // TEMP: Produces an array to store a fixed sized, array for 10 seconds of data
+    if (!signal) {
+        fprintf(stderr, "Failed to allocate inputSignal\n");
+        return NULL; }
+
+    for (int i = 0; i < length; i++) {
+        int error = (rand() % 200) * (-1 + (rand() % 3));
+
+        // signal[i] = sin(2.0 * M_PI * (1900 + error) * i / SFREQ); 
+        //printf("Test: %d\n", i);
+        // printf("Test: %d\n", error);
+        signal[i] = fft_input_custom_gen(i); 
+    }
+    return signal; }
+
+// Initializes window array
+float* winInit(float *window, int samples) {
+    for (int i = 0; i < samples; i++) { // Hann window
+        window[i] = 0.5 * (1 - cos(2 * M_PI * i / (samples - 1))); }
+    return window;
+}
+
 // Main function handles frequency input/output operations.
 int main() {
     float *inputSignal; // The full input signal
-    int signalLength = 4096; // n
-    int hopSize = NFFT / 2; // H, 50% overlap test
-    int numFrames = (signalLength - NFFT) / hopSize + 1;
-    float window[NFFT]; // w
+    float sec = 1; // (s)
+    float signalLength = SFREQ * sec; // Number of samples in the signal (n)
+    float nFrame = SFREQ / 4; // Length of each frame
+    float hopLength = nFrame / 16; // The distance between each FFT, H, 50% overlap test
+    inputSignal = inputStore(inputSignal, signalLength);
     
-    float mags[NFFT/2 + 1];
+    int numFrames = ((signalLength - nFrame) / hopLength) + 1; // Computes the number of FFT frames.
+    printf("Frame length: %f\n", nFrame);
+    printf("Number of frames: %d\n", numFrames);
+    printf("Hop length: %f\n", hopLength);
+    // printf("Number of frames: %d\n", numFrames);
+    // int numFrames = (len(*inputSignal) - NFFT) + 1; // Number of hops
+    float window[(int)nFrame]; // w
+    winInit(window, nFrame);
+
+    float mags[(int)nFrame/2 + 1];
     float max_mag = 0;
     int max_index = 0;
-
-    // Signal allocation
-    inputSignal = malloc(signalLength * sizeof(double));
-    if (!inputSignal) {
-        fprintf(stderr, "Failed to allocate inputSignal\n");
-        return 1;
-    }
-
-    // Initialize inputSignal with data
-    for (int i = 0; i < signalLength; i++) {
-        // inputSignal[i] = sin(2 * M_PI * 5500 * i / SFREQ); 
-        // printf("Test: %d\n", i);
-        inputSignal[i] = fft_input_custom_gen(i);
-    }
-
-    // Initialize freqency array
-    for (int k = 0; k < (NFFT/2 + 1); k++) {
-        mags[k] = 0.0;
-    }
-
-    // Initialize Hann window
-    for (int i = 0; i < NFFT; i++) {
-        window[i] = 0.5 * (1 - cos(2 * M_PI * i / (NFFT - 1)));
-    }
     
-    // Allocate
-    float *in_r = malloc(sizeof(double)*NFFT);
-    kiss_fft_cpx *out_c = malloc(sizeof(kiss_fft_cpx)*(NFFT/2+1));
-    kiss_fftr_cfg cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
+    // Initialize freqency array
+    for (int k = 0; k < (nFrame/2 + 1); k++) {
+        mags[k] = 0.0;
+    } 
 
+    // Allocate
+    float *in_r = malloc(sizeof(double)*nFrame);
+    kiss_fft_cpx *out_c = malloc(sizeof(kiss_fft_cpx)*(nFrame/2+1));
+    kiss_fftr_cfg cfg = kiss_fftr_alloc(nFrame, 0, 0, 0);
 
     for (int frame = 0; frame < numFrames; frame++) {
-        int start = frame * hopSize;
+        int start = frame * hopLength;
 
-        for(int i = 0; i < NFFT; i++) { // Windows frame
+        for(int i = 0; i < nFrame; i++) { // Windows frame
             in_r[i] = inputSignal[start + i] * window[i];
         }
-
-        // Fill input (e.g., from audio capture)
-        // for (int i = 0; i < NFFT; i++)
-        //     in_r[i] = /* your real samples */ 0.0;
 
         // Execute FFT
         kiss_fftr(cfg, in_r, out_c);
@@ -70,7 +81,7 @@ int main() {
         max_index = 0;
 
         // Process spectrum
-        for (int k = 0; k <= NFFT/2; k++) {
+        for (int k = 0; k <= nFrame/2; k++) {
             // float freq = k * (float)SFREQ / NFFT; 
             mags[k]  = sqrt(out_c[k].r*out_c[k].r + out_c[k].i*out_c[k].i);
             if (mags[k] > max_mag) {
@@ -78,8 +89,13 @@ int main() {
                 max_index = k;
             }
         }
-        printf("Frame %d max freq: %6.1f Hz with magnitude %f\n", frame, max_index * (float)SFREQ / NFFT, max_mag);
-    }
+        printf("%2.d: (%.1fs,  +%.2fs) max freq: %6.1f Hz with magnitude %f\n", 
+            (frame + 1), // Frame being viewed
+            (sec / numFrames * frame), // Time index of frame
+            (sec / numFrames), // Time increment between frames
+            max_index * (float)SFREQ / nFrame, // Max frequency of frame
+            max_mag); // Max magnitude
+    }  
     
     // Cleanup
     kiss_fft_free(cfg);

@@ -8,6 +8,15 @@
         "adafruit_gfx.h": "c",
         "adafruit_i2cdevice.h": "c",
         "adafruit_spidevice.h": "c",
-        "lcd.h": "c"
+        "lcd.h": "c",
+        "kiss_fftr.h": "c",
+        "kiss_fft.h": "c",
+        "tft_display.h": "c",
+        "spi.h": "c",
+        "stdlib.h": "c",
+        "images.h": "c",
+        "file_locations.h": "c",
+        "dataio.h": "c",
+        "stdint.h": "c"
     }
 }

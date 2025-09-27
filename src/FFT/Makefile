@@ -31,6 +31,6 @@ fft: $(OBJ)
 
 #Remove executable files
 clean:
-	$(RM) stft.o fft_input.o fft_run
+	$(RM) fft_run $(OBJ) 
 
 -include $(DEPS)

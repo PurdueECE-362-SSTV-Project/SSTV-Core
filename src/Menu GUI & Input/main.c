@@ -43,8 +43,8 @@ void init_spi_lcd() {
     // initialize SPI1 with 48 MHz clock
     gpio_set_function(PIN_SCK, GPIO_FUNC_SPI);
     gpio_set_function(PIN_SDI, GPIO_FUNC_SPI);
-    spi_init(spi1, 100 * 1000 * 1000);
-    spi_set_format(spi1, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+    spi_init(spi0, 100 * 1000 * 1000);
+    spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
 }
 
 Picture* load_image(const char* image_data);
@@ -163,6 +163,8 @@ int main() {
             // Free the Picture struct (not the pixel data)
             free_image(frame_pic);
         }
+
+        //LCD_DrawFillRectangle(20, 20, 60, 60, WHITE);
     
         // Move to the next frame, looping back to the start
         frame_index++;
@@ -171,7 +173,7 @@ int main() {
         }
     
         // Add a small delay to control animation speed
-        sleep_ms(1); // Adjust delay as needed
+        sleep_ms(10); // Adjust delay as needed
     }
     #endif
 

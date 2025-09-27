@@ -61,14 +61,14 @@ float* bufferGenFloat(uint16_t size) {
 // Main function handles frequency input/output operations.
 int main() {
     float *inputSignal;                              // The full input signal
-    float sec = 1;                                  // Time in s
-    int signalLength = SFREQ * sec;                 // Number of samples in the signal (n)
+    float sec = 1;                                   // Time in s
+    int signalLength = SFREQ * sec;                  // Number of samples in the signal (n)
     //int NFFT = 256;                                // Length of each frame
-    int hopLength = 54;                             // The distance between each FFT
+    float hopLength = (int)(SFREQ * 0.005);                             // The distance between each FFT
     inputSignal = inputStore(signalLength);
     int numFrames = ((signalLength - NFFT) / hopLength) + 1; // Computes the number of FFT frames.
     float *window = winInit(NFFT);
-    
+
     // printf("Frame length: %d\n", NFFT);
     // printf("Number of frames: %d\n", numFrames);
     // printf("Hop length: %d\n", hopLength);
@@ -115,10 +115,10 @@ int main() {
                 max_index = k;
             }
         }
-        printf("%3.d: (%.5fs,  +%.5fs) max freq: %6.1f Hz with magnitude %f\n", 
+        printf("%3.d: (%.3fs, +%.3fms) max freq: %6.1f Hz with magnitude %f\n", 
             (frame + 1), // Frame being viewed
-            (sec / numFrames * frame), // Time index of frame
-            (sec / numFrames), // Time increment between frames
+            ((float)hopLength / SFREQ * frame), // Time index of frame
+            ((float)hopLength / SFREQ * 1000), // Time increment between frames
             max_index * (float)SFREQ / NFFT, // Max frequency of frame
             max_mag); // Max magnitude
     }  

@@ -5,7 +5,7 @@ LDFLAGS = -lm
 DEPS = fft_functions.h
 
 #App sources
-APP_SRC  = stft.c fft_input_aaryan.c
+APP_SRC  = stft.c fft_input.c
 
 #KISS_FFT sources
 KISS_DIR = ../../lib/kissfft-master
@@ -31,6 +31,6 @@ fft: $(OBJ)
 
 #Remove executable files
 clean:
-	$(RM) stft.o fft_input_aaryan.o fft_run
+	$(RM) stft.o fft_input.o fft_run
 
 -include $(DEPS)

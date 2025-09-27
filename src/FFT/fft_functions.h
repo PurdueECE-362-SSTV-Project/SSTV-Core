@@ -8,8 +8,8 @@
 #include <stdint.h>
 #include <math.h>
 
-#define NFFT        256       // Number of sampling points in the DFT
-#define SFREQ       11025.0     // Sampling Frequency 11025Hz 
+#define NFFT        512       // Number of sampling points in the DFT
+#define SFREQ       12000.0     // Sampling Frequency 11025Hz 
 #define M_PI        3.14159265358979323846
 
 #define TIME_BOUNDS(time, lower_bound, upper_bound)   ((time >= lower_bound) && (time < upper_bound))

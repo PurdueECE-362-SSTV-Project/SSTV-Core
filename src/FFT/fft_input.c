@@ -23,8 +23,8 @@ float fft_input_custom_gen (float time) {
     float output_val;
 
     // Time difference (start) and updating global funtion for time
-    long long int time_n = (int)time % 11025;
-    time_global = (int)time % 11025;
+    long long int time_n = (int)time % (int)SFREQ;
+    time_global = (int)time % (int)SFREQ;
 
     if (time_n < 0) output_val = gen_sin(1);
     else if (TIME_BOUNDS(time_n, 0, TIME_VIS_SYNC_1))                   output_val = gen_sin(FREQ_VIS_SYNC_1);

@@ -9,28 +9,30 @@
 
 // Fucnctions:
 float fft_input_custom_gen(float);
-float* inputStore(float*, int);
-float* winInit(float*, int);
+float* inputStore(int);
+float* winInit(int);
 
 //Allocs and store input data in pointer
-float* inputStore(float *signal, int length) {
-    signal = malloc(length * sizeof(float)); // TEMP: Produces an array to store a fixed sized, array for 10 seconds of data
-    if (!signal) {
+float* inputStore(int length) {
+    float *inputSignal = malloc(length * sizeof(float)); // TEMP: Produces an array to store a fixed sized, array for 10 seconds of data
+    if (!inputSignal) {
         fprintf(stderr, "Failed to allocate inputSignal\n");
         return NULL; }
 
     for (int i = 0; i < length; i++) {
         int error = (rand() % 200) * (-1 + (rand() % 3));
 
-        // signal[i] = sin(2.0 * M_PI * (1900 + error) * i / SFREQ); 
+        // inputSignal[i] = sin(2.0 * M_PI * (1900 + error) * i / SFREQ); 
         //printf("Test: %d\n", i);
         // printf("Test: %d\n", error);
-        signal[i] = fft_input_custom_gen(i); 
+        inputSignal[i] = fft_input_custom_gen(i); 
     }
-    return &signal; }
+    return inputSignal; }
 
 // Initializes window array
-float* winInit(float *window, int samples) {
+float* winInit(int samples) {
+    float *window = malloc(samples * sizeof(float));
+
     for (int i = 0; i < samples; i++) { // Hann window
         window[i] = 0.5 * (1 - cos(2 * M_PI * i / (samples - 1))); }
     return window;
@@ -40,10 +42,10 @@ float* winInit(float *window, int samples) {
 int main() {
     float *inputSignal; // The full input signal
     float sec = 1; // (s)
-    float signalLength = SFREQ * sec; // Number of samples in the signal (n)
+    int signalLength = SFREQ * sec; // Number of samples in the signal (n)
     int nFrame = 2048; // Length of each frame
     int hopLength = nFrame / 2; // The distance between each FFT, H, 50% overlap test
-    inputSignal = inputStore(inputSignal, signalLength);
+    inputSignal = inputStore(signalLength);
     
     int numFrames = ((signalLength - nFrame) / hopLength) + 1; // Computes the number of FFT frames.
     printf("Frame length: %d\n", nFrame);
@@ -51,8 +53,7 @@ int main() {
     printf("Hop length: %d\n", hopLength);
     // printf("Number of frames: %d\n", numFrames);
     // int numFrames = (len(*inputSignal) - NFFT) + 1; // Number of hops
-    float window[nFrame]; // w
-    winInit(window, nFrame);
+    float *window = winInit(nFrame);
 
     float mags[nFrame/2 + 1];
     float max_mag = 0;

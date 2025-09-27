@@ -11,7 +11,7 @@ float time_global = 0;
 
 static float gen_sin(float frequency) {
     //return (1.0 / ((float) INT64_MAX)) * sin(2.0 * M_PI * frequency * time_global / SFREQ); return (1.0 / ((float) INT64_MAX)) * sin(2.0 * M_PI * frequency * time_global / SFREQ); 
-    printf("time: %.1f, frequency: %.1f\n", time_global, frequency);
+    // printf("time: %.1f, frequency: %.1f\n", time_global, frequency);
     return sin(2.0 * M_PI * frequency * time_global / SFREQ); 
 }
 

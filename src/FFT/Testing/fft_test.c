@@ -27,7 +27,7 @@ float* inputStore(float *signal, int length) {
         // printf("Test: %d\n", error);
         signal[i] = fft_input_custom_gen(i); 
     }
-    return signal; }
+    return &signal; }
 
 // Initializes window array
 float* winInit(float *window, int samples) {
@@ -41,20 +41,20 @@ int main() {
     float *inputSignal; // The full input signal
     float sec = 1; // (s)
     float signalLength = SFREQ * sec; // Number of samples in the signal (n)
-    float nFrame = SFREQ / 4; // Length of each frame
-    float hopLength = nFrame / 16; // The distance between each FFT, H, 50% overlap test
+    int nFrame = 2048; // Length of each frame
+    int hopLength = nFrame / 2; // The distance between each FFT, H, 50% overlap test
     inputSignal = inputStore(inputSignal, signalLength);
     
     int numFrames = ((signalLength - nFrame) / hopLength) + 1; // Computes the number of FFT frames.
-    printf("Frame length: %f\n", nFrame);
+    printf("Frame length: %d\n", nFrame);
     printf("Number of frames: %d\n", numFrames);
-    printf("Hop length: %f\n", hopLength);
+    printf("Hop length: %d\n", hopLength);
     // printf("Number of frames: %d\n", numFrames);
     // int numFrames = (len(*inputSignal) - NFFT) + 1; // Number of hops
-    float window[(int)nFrame]; // w
+    float window[nFrame]; // w
     winInit(window, nFrame);
 
-    float mags[(int)nFrame/2 + 1];
+    float mags[nFrame/2 + 1];
     float max_mag = 0;
     int max_index = 0;
     
@@ -64,7 +64,7 @@ int main() {
     } 
 
     // Allocate
-    float *in_r = malloc(sizeof(double)*nFrame);
+    float *in_r = malloc(sizeof(float)*nFrame);
     kiss_fft_cpx *out_c = malloc(sizeof(kiss_fft_cpx)*(nFrame/2+1));
     kiss_fftr_cfg cfg = kiss_fftr_alloc(nFrame, 0, 0, 0);
 

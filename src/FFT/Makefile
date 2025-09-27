@@ -1,14 +1,14 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra 
-CPPFLAGS  = -I. -I../../../lib/kissfft-master
+CPPFLAGS  = -I. -I../../lib/kissfft-master
 LDFLAGS = -lm
 DEPS = fft_functions.h
 
 #App sources
-APP_SRC  = fft_test.c fft_input_aaryan.c
+APP_SRC  = stft.c fft_input_aaryan.c
 
 #KISS_FFT sources
-KISS_DIR = ../../../lib/kissfft-master
+KISS_DIR = ../../lib/kissfft-master
 KISS_SRC = $(KISS_DIR)/kiss_fft.c $(KISS_DIR)/kiss_fftr.c
 
 #Build sets
@@ -18,7 +18,6 @@ DEPD  = $(OBJ:.o=.d)
 HEADS = fft_functions.h       
 
 .PHONY: clean always
-
 
 all: fft
 
@@ -32,6 +31,6 @@ fft: $(OBJ)
 
 #Remove executable files
 clean:
-	$(RM) fft_test.o fft_input_aaryan.o fft_run
+	$(RM) stft.o fft_input_aaryan.o fft_run
 
 -include $(DEPS)

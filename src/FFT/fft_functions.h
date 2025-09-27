@@ -1,8 +1,8 @@
 #ifndef _FFT_FUNTIONS
 #define _FFT_FUNTIONS
 
-#include "../../../lib/kissfft-master/kiss_fft.h"
-#include "../../../lib/kissfft-master/kiss_fftr.h"
+#include "../../lib/kissfft-master/kiss_fft.h"
+#include "../../lib/kissfft-master/kiss_fftr.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>

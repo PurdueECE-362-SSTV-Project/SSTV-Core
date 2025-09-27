@@ -1,5 +1,5 @@
-#include "../../../lib/kissfft-master/kiss_fft.h"
-#include "../../../lib/kissfft-master/kiss_fftr.h"
+#include "../../lib/kissfft-master/kiss_fft.h"
+#include "../../lib/kissfft-master/kiss_fftr.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>

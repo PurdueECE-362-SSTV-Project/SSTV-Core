@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include "pico/stdlib.h"
 
 // Personal Libraries
 #include "file_locations.h"
@@ -19,7 +20,7 @@ int main (void) {
     // Initialize PICO
     stdio_init_all();
 
-    queue_init(3);
+    //queue_init(3);
 
     return 0;
 }

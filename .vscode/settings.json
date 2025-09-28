@@ -17,6 +17,12 @@
         "images.h": "c",
         "file_locations.h": "c",
         "dataio.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "user_input.h": "c",
+        "gpio.h": "c",
+        "png.h": "c",
+        "pngpriv.h": "c",
+        "pngstruct.h": "c",
+        "fft_functions.h": "c"
     }
 }

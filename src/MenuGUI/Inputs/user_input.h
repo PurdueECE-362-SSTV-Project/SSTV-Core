@@ -1,74 +1,37 @@
 #ifndef _USER_INPUT
 #define _USER_INPUT
 
-////    ////    ////    ////
-// LIBRARIES //
-////    ////    ////    ////
-// ** // ** // ** //
 // Core Libraries
 #include <stdio.h>
 #include "pico/stdlib.h"
 
-// Touchscreen Libraries - SPI
+#include "file_locations.h"
 
-////    ////    ////    ////
-// Global Definations //
-////    ////    ////    ////
-// ** // ** // ** //
-// Global Constants and Definations
-const char keymap[16] = "DCBA#9630852*741";
+// Keypad Definations
+const char keymap[17] = "DCBA#9630852*741";
 
-// Global Variables
-char key = '\0';
-int col = 0;
+#define DELAY_DRIVE_READ     MUS_TO_MS * 25                     // 25 ms
 
-////    ////    ////    ////    ////    ////
-// INSTATIATIONS and INITIALIZATIONS //
-////    ////    ////    ////    ////    ////
+#define SECOND                  MUS_TO_MS * 1000                // 1 s
+#define SECOND_1                MUS_TO_MS * 1100                // 1.1 s
+
+#define ALARM_NUM_DRIVE 0
+#define ALARM_NUM_READ  1
+
+#define ALARM_IRQ_DRIVE TIMER0_IRQ_0
+#define ALARM_IRQ_READ  TIMER0_IRQ_1
+
+#define KEYPAD_OUT_MASK (uint32_t) ((1u << 6) | (1u << 7) | (1u << 8) | (1u << 9))
+
+#define ROW_GP2     4
+#define ROW_GP3     3
+#define ROW_GP4     2
+#define ROW_GP5     1
+
+//Function Definations
 void keypad_isr(void);
 void init_keypad_irq(void);
-
-// ** // ** // ** //
-// ISR(s) //
-void keypad_isr() {
-    int row;
-
-    // Print Keypad values
-    if (gpio_get_irq_event_mask(2) & GPIO_IRQ_EDGE_RISE) {
-        gpio_acknowledge_irq(2, GPIO_IRQ_EDGE_RISE);
-        row = 4;
-    }
-
-    if (gpio_get_irq_event_mask(3) & GPIO_IRQ_EDGE_RISE) {
-        gpio_acknowledge_irq(3, GPIO_IRQ_EDGE_RISE);
-        row = 3;
-    }
-
-    if (gpio_get_irq_event_mask(4) & GPIO_IRQ_EDGE_RISE) {
-        gpio_acknowledge_irq(4, GPIO_IRQ_EDGE_RISE);
-        row = 2;
-    }
-
-    if (gpio_get_irq_event_mask(5) & GPIO_IRQ_EDGE_RISE) {
-        gpio_acknowledge_irq(5, GPIO_IRQ_EDGE_RISE);
-        row = 1;
-    }
-    key = (&keymap[4 - (row)])[4 * (4 - (col + 1))];
-    printf("%c\n", key);
-}
-
-void init_keypad_irq() {
-    gpio_add_raw_irq_handler_masked((1u << 2) | (1u << 3) | (1u << 4) | (1u << 5), (irq_handler_t) &keypad_isr);
-
-    // Enabling IRQ for GPIO
-    uint i = 2;
-
-    for (i = 2; i < 6; i++) {
-        gpio_set_irq_enabled(i, GPIO_IRQ_EDGE_RISE, true);
-    }
-
-    // IRQ set IO Bank  
-    irq_set_enabled(IO_IRQ_BANK0, true);
-}
+void keypad_drive_column();
+void keypad_isr();
 
 #endif

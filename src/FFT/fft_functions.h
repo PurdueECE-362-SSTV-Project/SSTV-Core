@@ -1,8 +1,8 @@
 #ifndef _FFT_FUNTIONS
 #define _FFT_FUNTIONS
 
-#include "../../lib/kissfft-master/kiss_fft.h"
-#include "../../lib/kissfft-master/kiss_fftr.h"
+#include "kiss_fft.h"
+#include "kiss_fftr.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -10,7 +10,7 @@
 
 #define M_PI        3.14159265358979323846
 
-#define NFFT        BUFFER_SIZE         // Number of sampling points in the DFT
+#define NFFT        256         // Number of sampling points in the DFT
 #define SFREQ       11025.0             // Sampling Frequency 11025Hz
 
 #define TIME_BOUNDS(time, lower_bound, upper_bound)   ((time >= lower_bound) && (time < upper_bound))

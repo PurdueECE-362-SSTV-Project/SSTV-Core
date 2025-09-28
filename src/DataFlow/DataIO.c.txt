@@ -10,13 +10,21 @@ static float* bufferGenFloat(uint16_t size) {
     return output;
 }
 
+void initializeQueueNode (struct linked_queue_t* queue_node) {
+    queue_node->next_node = NULL;
+    queue_node->buffer_adcOut = NULL;
+    queue_node->buffer_fftOut = NULL;
+    queue_node->prev_node = NULL;
+}
+
 void queue_init (uint8_t SIZE) {
     struct linked_queue_t* first_node_queue;
     struct linked_queue_t* prev_node_queue;
+    initializeQueueNode(prev_node_queue);
 
     // Intialiing prev queue
     prev_node_queue->next_node = malloc(sizeof(struct linked_queue_t*));
-    if (!(prev_node_queue->next_node)) printf(stderr, "Failed to allocate queue node\n");
+    if (!(prev_node_queue->next_node)) printf("Failed to allocate queue node\n");
 
     // Making a fresh SIZE node(s) long queue with fresh buffers
     for (uint8_t iter = 0; iter < SIZE; iter++) {
@@ -25,7 +33,7 @@ void queue_init (uint8_t SIZE) {
 
         ////    ////    ////    ////    ////    
         // Assign Prev Queue to the prev - initiaize first node to attach last note to at the end //
-        if (iter = 0) {
+        if (iter == 0) {
             first_node_queue = new_node_queue;
             new_node_queue->prev_node = 0;
         }
@@ -38,11 +46,11 @@ void queue_init (uint8_t SIZE) {
         // Assign buffers to the queue //
         // ADC Buffer
         new_node_queue->buffer_adcOut = bufferGenFloat(BUFFER_SIZE);
-        if (!(new_node_queue->buffer_adcOut)) printf(stderr, "Failed to allocate Buffer\n");
+        if (!(new_node_queue->buffer_adcOut)) printf("Failed to allocate Buffer\n");
 
         // FFT Buffer
         new_node_queue->buffer_fftOut = bufferGenFloat(BUFFER_SIZE);
-        if (!(new_node_queue->buffer_fftOut)) printf(stderr, "Failed to allocate Buffer\n");
+        if (!(new_node_queue->buffer_fftOut)) printf("Failed to allocate Buffer\n");
         ////    ////    ////    ////    ////    
 
 
@@ -50,7 +58,7 @@ void queue_init (uint8_t SIZE) {
         // Malloc the next queue to write on - or assign the first queue to the last node (loop)
         if (iter < (SIZE - 1)) {
             new_node_queue->next_node = malloc(sizeof(struct linked_queue_t*));
-            if (!(new_node_queue->next_node)) printf(stderr, "Failed to allocate queue node\n");
+            if (!(new_node_queue->next_node)) printf("Failed to allocate queue node\n");
         }
 
         // Recognizing Last node to assign to 'prev' of first - 'next' of last

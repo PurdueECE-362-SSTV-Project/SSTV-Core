@@ -58,25 +58,51 @@ class SenderQueue : protected AtomicQueue<FIFOMessage> {
 #if ENABLE_MERRY_MEMORY == 1 
 
 
-class MerryMemoryBlock {
+/**
+ * @brief Singleton memory origin used to supply addresses to queue-based pipelines.
+ *
+ * This class is intended to be implemented as a singleton: every program
+ * should have exactly one `MerryMemoryOrigin`. For queue-based memory
+ * address pipelines, the origin is the single authoritative allocator and
+ * deallocator. As the pipeline starts, the origin will allocate and
+ * deallocate memory in one place and "pump" addresses into the pipeline's
+ * inbound queue. Once the origin observes that all addresses are enqueued
+ * in the pipeline, the pipeline stage connected to the origin will only
+ * receive address pushes from the task assigned to its inbound queue.
+ *
+ * In short: this centralizes address management for pipeline-based memory
+ * flows and guarantees a single source of allocation for the pipeline.
+ */
+class MerryMemoryOrigin {
     private:
-        AtomicQueue<T, MERRY_MEMORY_BLOCK_COUNT>
+        AtomicQueue<T*, MERRY_MEMORY_BLOCK_COUNT>
+        bool is_depleted;
     public: 
-
+        MerryMemoryOrigin();
+        ~MerryMemoryOrigin();
 };
 
 template <typename T>
 using MerryTaskFunction = void (*)(T* buffer_address);
 
+/**
+ * @brief Aggregates task execution, interrupt management, and queue pipelining.
+ *
+ * For simplicity, `MerryTask` is a helper template that ties together a
+ * task function, its inbound/outbound queue interfaces, and the interrupt
+ * handling needed to drive a queue-based pipeline stage. IO bound tasks like ADC or DMA subroutines should be using register_interrupt
+ * while compute heavy tasks like signal processing should just be done with call_synchronous in the main loop on one of the cores. Remember you can have only one per core
+ */
 template<typename T, int N>
 class MerryTask {
     private: 
-        AtomicQueue<T, N>& inbound_queue;
-        AtomicQueue<T, N> outbound_queue;
+        AtomicQueue<T*, N>& inbound_queue;
+        AtomicQueue<T*, N> outbound_queue;
         MerryTaskFunction<T> function;
 
     public:
         register_interrupt();
+        call_synchronous();
 };
 
 #endif // ENABLE_MERRYGOROUND_MEMORY == 1

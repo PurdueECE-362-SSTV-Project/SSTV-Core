@@ -1,5 +1,5 @@
 #include <unity.h>
-#include "native/bmmpi_native.hpp"
+#include "native/n_bmmpi.hpp"
 #include "AppConfig.h"
 
 

@@ -49,16 +49,6 @@ void fifo_core1_irq() {
 }
 
 
-// these abstract methods are provided to future proof behavior of specific atomic queue implementations. Not doing much right now tho
-bool SenderQueue::atomic_push_proc(FIFOMessage value) {
-    return this->internal_queue.push_back(value);
-}
-
-
-FIFOMessage SenderQueue::atomic_pop_proc() {
-    return this->internal_queue.pop_front();
-}
-
 // *************************************************
 // MESSAGING USING DMA
 // *************************************************

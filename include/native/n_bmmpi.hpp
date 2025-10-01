@@ -83,6 +83,7 @@ class RingQueue {
         static int wraparound_increment(int current);
 
         void flush();
+        T* get_full_buffer()
 
         T pop_front();
         bool push_back(const T value);

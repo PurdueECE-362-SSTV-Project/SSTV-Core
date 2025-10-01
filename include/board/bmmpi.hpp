@@ -19,11 +19,12 @@ template <typename T, int N>
 class AtomicQueue {
     protected: 
         critical_section at_queue_cs;
-        virtual bool atomic_push_proc(T value);
-        virtual T atomic_pop_proc();
+        RingQueue<T, N> internal_queue;
     public:
         bool is_full();
         bool is_empty();
+        T* acquire_queue_array();
+        bool release_queue_array(T* queue_array);
         bool atomic_push(T value);
         T atomic_pop();
 };
@@ -39,15 +40,6 @@ void fifo_core1_irq();
 
 void init_fifo_irq_core0();
 void init_fifo_irq_core1();
-
-
-class SenderQueue : protected AtomicQueue<FIFOMessage> {
-    private:
-        RingQueue<FIFOMessage, RING_QUEUE_BUFFER_SIZE> internal_queue;
-    protected:
-        bool atomic_push_proc(FIFOMessage value) override;
-        FIFOMessage atomic_pop_proc() override;
-};
 
 
 #include "board/templates/atomic_queue.tpp"
@@ -73,9 +65,12 @@ class SenderQueue : protected AtomicQueue<FIFOMessage> {
  * In short: this centralizes address management for pipeline-based memory
  * flows and guarantees a single source of allocation for the pipeline.
  */
+
+
+template <typename T, int N, int W>
 class MerryMemoryOrigin {
     private:
-        AtomicQueue<T*, MERRY_MEMORY_BLOCK_COUNT>
+        AtomicQueue<T*, N> origin_queue;
         bool is_depleted;
     public: 
         MerryMemoryOrigin();
@@ -104,6 +99,8 @@ class MerryTask {
         register_interrupt();
         call_synchronous();
 };
+
+#include "board/templates/merry_go_round.tpp"
 
 #endif // ENABLE_MERRYGOROUND_MEMORY == 1
 

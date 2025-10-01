@@ -39,6 +39,12 @@ int RingQueue<T>::wraparound_increment(int current) {
 
 
 template<typename T>
+T* RingQueue<T>::get_full_buffer() {
+    return &this->data[0];
+}
+
+
+template<typename T>
 T RingQueue<T>::pop_front() {
     if(this->empty()) {
         return this->default_value;

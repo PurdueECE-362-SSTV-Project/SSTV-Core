@@ -4,49 +4,51 @@
 #include "AppConfig.h"
 
 
-template<typename T>
-RingQueue<T>::RingQueue(T default_value) : default_value(default_value) {}
+template<typename T, int N>
+RingQueue<T, N>::RingQueue(T default_value) : default_value(default_value) {}
 
 
-template<typename T>
-int RingQueue<T>::size() {
+template<typename T, int N>
+int RingQueue<T, N>::size() {
     return this->count;
 }
 
 
-template<typename T>
-int RingQueue<T>::max_size() {
+template<typename T, int N>
+int RingQueue<T, N>::max_size() {
     return RING_QUEUE_BUFFER_SIZE;
 }
 
 
-template<typename T>
-bool RingQueue<T>::empty() {
+template<typename T, int N>
+bool RingQueue<T, N>::empty() {
     return this->count == 0;
 }
 
 
-template<typename T>
-bool RingQueue<T>::full() {
+template<typename T, int N>
+bool RingQueue<T, N>::full() {
     return this->count == max_size();
 }
 
 
-template<typename T>
-int RingQueue<T>::wraparound_increment(int current) {
+template<typename T, int N>
+int RingQueue<T, N>::wraparound_increment(int current) {
     return (current + 1) & RING_QUEUE_BUFFER_MASK;
 }
 
 
-template<typename T>
-T* RingQueue<T>::get_full_buffer() {
+template<typename T, int N>
+T* RingQueue<T, N>::get_full_buffer() {
     return &this->data[0];
 }
 
 
-template<typename T>
-T RingQueue<T>::pop_front() {
+template<typename T, int N>
+T RingQueue<T, N>::pop_front(bool *result) {
+    *result = true;
     if(this->empty()) {
+        *result = false;
         return this->default_value;
     }
     T to_pop = this->data[this->head];
@@ -58,8 +60,8 @@ T RingQueue<T>::pop_front() {
 }
 
 
-template<typename T>
-bool RingQueue<T>::push_back(const T value) {
+template<typename T, int N>
+bool RingQueue<T, N>::push_back(const T value) {
     if(this->full()) {
         return false;
     }
@@ -72,8 +74,8 @@ bool RingQueue<T>::push_back(const T value) {
 }
 
 
-template<typename T>
-void RingQueue<T>::flush() {
+template<typename T, int N>
+void RingQueue<T, N>::flush() {
     this->head = 0;
     this->tail = 0;
     this->count = 0;

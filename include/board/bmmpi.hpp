@@ -5,6 +5,7 @@
 
 #include <limits>
 #include <cstdint>
+#include <memory>
 #include "pico/stdlib.h"
 #include "pico/sync.h"
 #include "pico/multicore.h"
@@ -13,6 +14,9 @@
 #include "native/n_bmmpi.hpp"
 #include "native/n_types.hpp"
 #include "AppConfig.h"
+
+
+using namespace std;
 
 
 template <typename T, int N>
@@ -26,7 +30,7 @@ class AtomicQueue {
         T* acquire_queue_array();
         bool release_queue_array(T* queue_array);
         bool atomic_push(T value);
-        T atomic_pop();
+        T atomic_pop(bool *result);
 };
 
 
@@ -50,8 +54,19 @@ void init_fifo_irq_core1();
 #if ENABLE_MERRY_MEMORY == 1 
 
 
+template<typename T, size_t W>
+struct _MerryBuffer {
+    uint32_t id;
+    T buffer[W];
+};
+
+
+template <typename T, size_t W>
+using MerryBuffer = _MerryBuffer<T, W>;
+
+
 /**
- * @brief Singleton memory origin used to supply addresses to queue-based pipelines.
+ * @brief memory origin used to supply addresses to queue-based pipelines.
  *
  * This class is intended to be implemented as a singleton: every program
  * should have exactly one `MerryMemoryOrigin`. For queue-based memory
@@ -65,20 +80,17 @@ void init_fifo_irq_core1();
  * In short: this centralizes address management for pipeline-based memory
  * flows and guarantees a single source of allocation for the pipeline.
  */
-
-
-template <typename T, int N, int W>
-class MerryMemoryOrigin {
-    private:
-        AtomicQueue<T*, N> origin_queue;
-        bool is_depleted;
+template <typename T, int N, size_t W>
+class MerryMemoryOrigin : protected AtomicQueue<MerryBuffer<T, W>, N> {
     public: 
         MerryMemoryOrigin();
-        ~MerryMemoryOrigin();
 };
 
-template <typename T>
-using MerryTaskFunction = void (*)(T* buffer_address);
+template <typename T, int W>
+class MerryTaskFunction {
+    public:
+    virtual bool run(unique_ptr<MerryBuffer<T, W>>& buffer_span);
+};
 
 /**
  * @brief Aggregates task execution, interrupt management, and queue pipelining.
@@ -88,16 +100,16 @@ using MerryTaskFunction = void (*)(T* buffer_address);
  * handling needed to drive a queue-based pipeline stage. IO bound tasks like ADC or DMA subroutines should be using register_interrupt
  * while compute heavy tasks like signal processing should just be done with call_synchronous in the main loop on one of the cores. Remember you can have only one per core
  */
-template<typename T, int N>
+template<typename T, int N, size_t W>
 class MerryTask {
     private: 
-        AtomicQueue<T*, N>& inbound_queue;
-        AtomicQueue<T*, N> outbound_queue;
-        MerryTaskFunction<T> function;
+        AtomicQueue<unique_ptr<MerryBuffer<T, W>>, N>& inbound_queue;
+        AtomicQueue<unique_ptr<MerryBuffer<T, W>>, N> outbound_queue;
+        MerryTaskFunction<T, W> function;
 
     public:
-        register_interrupt();
-        call_synchronous();
+        void register_interrupt();
+        bool call_synchronous();
 };
 
 #include "board/templates/merry_go_round.tpp"

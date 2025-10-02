@@ -1,10 +1,10 @@
-#include "dma_config.h"
+#include "board/dma_config.h"
 
 
 static uint32_t dma_irq_num = 0;
 
 
-void init_dma(uint32_t* read_addr, uint32_t* write_addr, DREQNum dreq_num, uint32_t transfer_count, DMAMode mode) {
+void init_dma(uint32_t* read_addr, uint32_t* write_addr, int dreq_num, uint32_t transfer_count, DMAMode mode) {
     if(transfer_count >= (1 << 28)) {
         panic("DMA transfer count too large");
     }
@@ -19,13 +19,13 @@ void init_dma(uint32_t* read_addr, uint32_t* write_addr, DREQNum dreq_num, uint3
     uint32_t temp = 0;
     temp |= (DMA_SIZE_32 << 2) | (dreq_num << 17) | 1;
 
-    dma_hw->ch[channe].ctrl_trig = temp;
+    dma_hw->ch[channel].ctrl_trig = temp;
 }
 
 
 void enable_dma_irq(uint32_t channel_num, void* irq_handler, bool enable) {
     switch (dma_irq_num) {
-        io_rw_32* inte_val
+        io_rw_32* inte_val;
         case 0:
             inte_val = &dma_hw->inte0;
             dma_irq_num++;

@@ -8,6 +8,10 @@
 
 #include "AppConfig.h"
 
+
+using namespace std;
+
+
 #if ENABLE_FIFO_MESSAGING == 1
 #define FIFO_TAIL INT32_MAX
 #endif
@@ -65,26 +69,45 @@ FIFOMessage message_from_uint32(uint32_t raw);
 
 #define RING_QUEUE_BUFFER_MASK (RING_QUEUE_BUFFER_SIZE - 1)
 
+
 template <typename T, int N>
-class RingQueue {
-    private: 
+class BaseQueue {
+    protected: 
         T data[N];
         T default_value;
+        int count;
+    public:
+        virtual int get_head();
+        virtual int get_tail();
+        virtual void flush();
+        virtual T pop_function();
+        virtual bool push_function(const T value);
+
+        int size();
+        bool full();
+        bool empty();
+        int max_size();
+
+        T pop_front(bool* result);
+        bool push_back(const T value);
+
+        BaseQueue(T default_value);
+
+        static int wraparound_increment(int current);
+};
+
+
+template <typename T, int N>
+class RingQueue : protected BaseQueue {
+    protected: 
         unsigned int head = 0;
         unsigned int tail = 0;
         int count = 0;
     public:
-        RingQueue(T default_value);
         int size();
-        int max_size();
-        bool empty();
         bool full();
-
-        static int wraparound_increment(int current);
-
+        bool empty();
         void flush();
-        T* get_full_buffer();
-
         T pop_front(bool* result);
         bool push_back(const T value);
 };

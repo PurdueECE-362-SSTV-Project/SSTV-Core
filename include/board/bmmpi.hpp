@@ -20,7 +20,22 @@ using namespace std;
 
 
 template <typename T, int N>
-class AtomicQueue {
+class InterruptQueue : protected RingQueue {
+    protected: 
+        critical_section at_queue_cs;
+        RingQueue<T, N> internal_queue;
+    public:
+        bool is_full();
+        bool is_empty();
+        T* acquire_queue_array();
+        bool release_queue_array(T* queue_array);
+        bool atomic_push(T value);
+        T atomic_pop(bool *result);
+};
+
+
+template <typename T, int N>
+class MulticoreLocklessQueue : protected RingQueue {
     protected: 
         critical_section at_queue_cs;
         RingQueue<T, N> internal_queue;

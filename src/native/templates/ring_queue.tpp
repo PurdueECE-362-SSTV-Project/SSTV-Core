@@ -5,70 +5,58 @@
 
 
 template<typename T, int N>
-RingQueue<T, N>::RingQueue(T default_value) : default_value(default_value) {}
+BaseQueue<T, N>::BaseQueue(T default_value) : default_value(default_value) {}
 
 
 template<typename T, int N>
-int RingQueue<T, N>::size() {
+int BaseQueue<T, N>::size() {
     return this->count;
 }
 
 
 template<typename T, int N>
-int RingQueue<T, N>::max_size() {
+int BaseQueue<T, N>::max_size() {
     return RING_QUEUE_BUFFER_SIZE;
 }
 
 
 template<typename T, int N>
-bool RingQueue<T, N>::empty() {
+bool BaseQueue<T, N>::empty() {
     return this->count == 0;
 }
 
 
 template<typename T, int N>
-bool RingQueue<T, N>::full() {
+bool BaseQueue<T, N>::full() {
     return this->count == max_size();
 }
 
 
 template<typename T, int N>
-int RingQueue<T, N>::wraparound_increment(int current) {
+int BaseQueue<T, N>::wraparound_increment(int current) {
     return (current + 1) & RING_QUEUE_BUFFER_MASK;
 }
 
 
 template<typename T, int N>
-T* RingQueue<T, N>::get_full_buffer() {
-    return &this->data[0];
-}
-
-
-template<typename T, int N>
-T RingQueue<T, N>::pop_front(bool *result) {
+T BaseQueue<T, N>::pop_front(bool *result) {
     *result = true;
     if(this->empty()) {
         *result = false;
         return this->default_value;
     }
-    T to_pop = this->data[this->head];
-
-    this->head = RingQueue::wraparound_increment(this->head);
-    this->count--;
+    T to_pop = this->pop_function();
 
     return to_pop;
 }
 
 
 template<typename T, int N>
-bool RingQueue<T, N>::push_back(const T value) {
+bool BaseQueue<T, N>::push_back(const T value) {
     if(this->full()) {
         return false;
     }
-    this->data[this->tail] = value;
-
-    this->tail = RingQueue::wraparound_increment(this->tail);
-    this->count++;
+    this->push_function(value);
 
     return true;
 }
@@ -80,3 +68,20 @@ void RingQueue<T, N>::flush() {
     this->tail = 0;
     this->count = 0;
 }
+
+
+template<typename T, int N>
+int RingQueue<T, N>::size() {
+
+}
+
+this->data[this->head];
+
+this->head = RingQueue::wraparound_increment(this->head);
+this->count--;
+
+
+this->data[this->tail] = value;
+
+this->tail = RingQueue::wraparound_increment(this->tail);
+this->count++;

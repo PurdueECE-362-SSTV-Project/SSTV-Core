@@ -1,59 +1,52 @@
 #include "board/bmmpi.hpp"
 
 
-template<typename T, int N>
-bool AtomicQueue<T, N>::atomic_push(T value) {
-    critical_section_enter_blocking(&this->at_queue_cs);
-    bool result = this->internal_queue.push(value);
-    critical_section_exit(&this->at_queue_cs);
-
-    return result;
+template <typename T, int N>
+void MulticoreLocklessQueue<T, N>::flush() {
+    void
 }
 
 
-template<typename T, int N>
-T AtomicQueue<T, N>::atomic_pop(bool *result) {
-    critical_section_enter_blocking(&this->at_queue_cs);
-    T popped = this->internal_queue.pop(result);
-    critical_section_exit(&this->at_queue_cs);
+template <typename T, int N>
+bool MulticoreLocklessQueue<T, N>::push_back(const T value) {
+    if(BaseQueue<T, N>::full(this->head.load(), this->tail.load())) {return false;}
+    unsigned int old_tail = this->tail.load();
+    unsigned int new_tail = BaseQueue<T, N>::wraparound_increment(old_tail);
 
-    return popped;
-}
-
-
-template<typename T, int N>
-bool AtomicQueue<T, N>::is_full() {
-    critical_section_enter_blocking(&this->at_queue_cs);
-    bool result = this->internal_queue.is_full();
-    critical_section_exit(&this->at_queue_cs);
-
-    return result;
-}
-
-
-template<typename T, int N>
-bool AtomicQueue<T, N>::is_empty() {
-    critical_section_enter_blocking(&this->at_queue_cs);
-    bool result = this->internal_queue.is_empty();
-    critical_section_exit(&this->at_queue_cs);
-
-    return result;
-}
-
-
-template<typename T, int N>
-T* AtomicQueue<T, N>::acquire_queue_array() {
-    critical_section_enter_blocking(&this->at_queue_cs);
-    return this->internal_queue.get_full_buffer();
-}
-
-
-template<typename T, int N>
-bool AtomicQueue<T, N>::release_queue_array(T* queue_array) {
-    if(queue_array != &this->internal_queue[0]) {
-        return false;
+    while(!this->tail.compare_exchange_weak(old_tail, new_tail)) {
+        old_tail = this->tail.load();
+        new_tail = BaseQueue<T, N>::wraparound_increment(old_tail);
+        if(BaseQueue<T, N>::full(this->head.load(), this->tail.load())) {return false;}
     }
-    critical_section_exit(&this->at_queue_cs);
+
+    this->data[new_tail] = value;
 
     return true;
+}
+
+
+template <typename T, int N>
+T MulticoreLocklessQueue<T, N>::pop_front(bool *result) {
+    *result = true;
+    if(BaseQueue<T, N>::empty(this->head.load(), this->tail.load())) {
+        *result = false;
+        return this->default_value;
+    }
+    unsigned int old_head = this->head.load(memory_order_acquire);
+    unsigned int new_head = BaseQueue<T, N>::wraparound_increment(old_head);
+
+    while(!this->head.compare_exchange_weak(old_head, new_head, memory_order_acquire)) {
+        old_head = this->head.load(memory_order_acquire);
+        new_head = BaseQueue<T, N>::wraparound_increment(old_head);
+
+        if(BaseQueue<T, N>::empty(this->head.load(), this->tail.load())) {
+            *result = false;
+            return this->default_value;
+        }
+    }
+
+    T return_value = this->data[old_head];
+    this->head.load(memory_order_release);
+
+    return return_value;
 }

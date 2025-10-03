@@ -72,44 +72,35 @@ FIFOMessage message_from_uint32(uint32_t raw);
 
 template <typename T, int N>
 class BaseQueue {
+    static_assert(N > 0, "N must be greater than 0");
+    static_assert(N & (N - 1) == 0, "N must be a power of 2");
     protected: 
         T data[N];
         T default_value;
-        int count;
+        const int queue_buffer_mask = N - 1;
     public:
-        virtual int get_head();
-        virtual int get_tail();
-        virtual void flush();
-        virtual T pop_function();
-        virtual bool push_function(const T value);
-
-        int size();
-        bool full();
-        bool empty();
-        int max_size();
-
-        T pop_front(bool* result);
-        bool push_back(const T value);
+        virtual void flush() = 0;
+        virtual T pop_front(bool* result) = 0;
+        virtual bool push_back(const T value) = 0;
 
         BaseQueue(T default_value);
 
+        static bool full(int head, int tail);
+        static bool empty(int head, int tail);
+        static int size(int head, int tail);
         static int wraparound_increment(int current);
 };
 
 
 template <typename T, int N>
-class RingQueue : protected BaseQueue {
+class RingQueue : protected BaseQueue<T, N> {
     protected: 
         unsigned int head = 0;
         unsigned int tail = 0;
-        int count = 0;
     public:
-        int size();
-        bool full();
-        bool empty();
-        void flush();
-        T pop_front(bool* result);
-        bool push_back(const T value);
+        void flush() override;
+        T pop_front(bool* result) override;
+        bool push_back(const T value) override;
 };
 
 
@@ -126,7 +117,6 @@ class RingQueue : protected BaseQueue {
  * work outside the ISR context.
  */
 typedef void (*ReceiverTask)(FIFOMessage msg);
-
 class ReceiverRouter {
     private:
         ReceiverTask handlers[FIFO_DEST_ID_MAX + 1];

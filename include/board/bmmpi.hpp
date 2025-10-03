@@ -6,6 +6,7 @@
 #include <limits>
 #include <cstdint>
 #include <memory>
+#include <atomic>
 #include "pico/stdlib.h"
 #include "pico/sync.h"
 #include "pico/multicore.h"
@@ -20,32 +21,26 @@ using namespace std;
 
 
 template <typename T, int N>
-class InterruptQueue : protected RingQueue {
+class InterruptQueue : protected RingQueue<T, N> {
     protected: 
         critical_section at_queue_cs;
-        RingQueue<T, N> internal_queue;
     public:
-        bool is_full();
-        bool is_empty();
-        T* acquire_queue_array();
-        bool release_queue_array(T* queue_array);
-        bool atomic_push(T value);
-        T atomic_pop(bool *result);
+        void flush() override;
+        T pop_front(bool* result) override;
+        bool push_back(const T value) override;
 };
 
 
 template <typename T, int N>
 class MulticoreLocklessQueue : protected RingQueue {
     protected: 
-        critical_section at_queue_cs;
+        atomic<unsigned int> head = 0;
+        atomic<unsigned int> tail = 0;
         RingQueue<T, N> internal_queue;
     public:
-        bool is_full();
-        bool is_empty();
-        T* acquire_queue_array();
-        bool release_queue_array(T* queue_array);
-        bool atomic_push(T value);
-        T atomic_pop(bool *result);
+        void flush() override;
+        T pop_front(bool* result) override;
+        bool push_back(const T value) override;
 };
 
 

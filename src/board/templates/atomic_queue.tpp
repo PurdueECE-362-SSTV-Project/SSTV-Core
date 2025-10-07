@@ -1,52 +1,48 @@
 #include "board/bmmpi.hpp"
 
 
-template <typename T, int N>
-void MulticoreLocklessQueue<T, N>::flush() {
-    void
+template <typename T, size_t N>
+void MulticoreLocklessQueueSPSC<T, N>::flush() {
+    bool result;
+
+    while(BaseQueue<T, N>::size(
+        this->head.load(memory_order_relaxed),
+        this->tail.load(memory_order_acquire)
+    ) > 0) {
+        this->pop_front(&result);
+    }
 }
 
 
-template <typename T, int N>
-bool MulticoreLocklessQueue<T, N>::push_back(const T value) {
-    if(BaseQueue<T, N>::full(this->head.load(), this->tail.load())) {return false;}
-    unsigned int old_tail = this->tail.load();
-    unsigned int new_tail = BaseQueue<T, N>::wraparound_increment(old_tail);
+template <typename T, size_t N>
+bool MulticoreLocklessQueueSPSC<T, N>::push_back(const T value) {
+    size_t const current_tail = this->tail.load(memory_order_relaxed);
 
-    while(!this->tail.compare_exchange_weak(old_tail, new_tail)) {
-        old_tail = this->tail.load();
-        new_tail = BaseQueue<T, N>::wraparound_increment(old_tail);
-        if(BaseQueue<T, N>::full(this->head.load(), this->tail.load())) {return false;}
+    if(BaseQueue<T, N>::full(this->head.load(memory_order_acquire), current_tail)) {
+        return false;
     }
 
-    this->data[new_tail] = value;
+    size_t const next_tail = BaseQueue<T, N>::wraparound_increment(current_tail);
+    this->data[next_tail] = value;
+    this->tail.store(next_tail, memory_order_release);
 
     return true;
 }
 
 
-template <typename T, int N>
-T MulticoreLocklessQueue<T, N>::pop_front(bool *result) {
-    *result = true;
-    if(BaseQueue<T, N>::empty(this->head.load(), this->tail.load())) {
+template <typename T, size_t N>
+T MulticoreLocklessQueueSPSC<T, N>::pop_front(bool *result) {
+    size_t const current_head = this->head.load(memory_order_relaxed);
+
+    if(BaseQueue<T, N>::empty(current_head, this->tail.load(memory_order_acquire))) {
         *result = false;
         return this->default_value;
     }
-    unsigned int old_head = this->head.load(memory_order_acquire);
-    unsigned int new_head = BaseQueue<T, N>::wraparound_increment(old_head);
 
-    while(!this->head.compare_exchange_weak(old_head, new_head, memory_order_acquire)) {
-        old_head = this->head.load(memory_order_acquire);
-        new_head = BaseQueue<T, N>::wraparound_increment(old_head);
+    size_t const next_head = BaseQueue<T, N>::wraparound_increment(current_head);
+    T return_value = this->data[current_head];
+    this->head.store(next_head, memory_order_release);
 
-        if(BaseQueue<T, N>::empty(this->head.load(), this->tail.load())) {
-            *result = false;
-            return this->default_value;
-        }
-    }
-
-    T return_value = this->data[old_head];
-    this->head.load(memory_order_release);
-
+    *result = true;
     return return_value;
 }

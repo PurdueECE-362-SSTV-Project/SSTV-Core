@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <atomic>
+#include <vector>
 #include "pico/stdlib.h"
 #include "pico/sync.h"
 #include "pico/multicore.h"
@@ -31,12 +32,11 @@ class InterruptQueue : protected RingQueue<T, N> {
 };
 
 
-template <typename T, int N>
-class MulticoreLocklessQueue : protected RingQueue {
+template <typename T, size_t N>
+class MulticoreLocklessQueueSPSC : protected BaseQueue<T, N> {
     protected: 
-        atomic<unsigned int> head = 0;
-        atomic<unsigned int> tail = 0;
-        RingQueue<T, N> internal_queue;
+        atomic<size_t> head = 0;
+        atomic<size_t> tail = 0;
     public:
         void flush() override;
         T pop_front(bool* result) override;
@@ -90,8 +90,8 @@ using MerryBuffer = _MerryBuffer<T, W>;
  * In short: this centralizes address management for pipeline-based memory
  * flows and guarantees a single source of allocation for the pipeline.
  */
-template <typename T, int N, size_t W>
-class MerryMemoryOrigin : protected AtomicQueue<MerryBuffer<T, W>, N> {
+template <typename T, size_t N, size_t W>
+class MerryMemoryOrigin : protected MulticoreLocklessQueueSPSC<MerryBuffer<T, W>, N> {
     public: 
         MerryMemoryOrigin();
 };
@@ -102,6 +102,14 @@ class MerryTaskFunction {
     virtual bool run(unique_ptr<MerryBuffer<T, W>>& buffer_span);
 };
 
+
+typedef void(*TaskManagerFunction)();
+typedef struct MerryTaskInterrupt {
+    unsigned int irq_num = 0;
+    TaskManagerFunction acknowledge;
+} MerryTaskInterrupt;
+
+
 /**
  * @brief Aggregates task execution, interrupt management, and queue pipelining.
  *
@@ -110,17 +118,59 @@ class MerryTaskFunction {
  * handling needed to drive a queue-based pipeline stage. IO bound tasks like ADC or DMA subroutines should be using register_interrupt
  * while compute heavy tasks like signal processing should just be done with call_synchronous in the main loop on one of the cores. Remember you can have only one per core
  */
-template<typename T, int N, size_t W>
+
+#define NUM_IRQS 52
+
+template<typename T, size_t N, size_t W>
 class MerryTask {
     private: 
-        AtomicQueue<unique_ptr<MerryBuffer<T, W>>, N>& inbound_queue;
-        AtomicQueue<unique_ptr<MerryBuffer<T, W>>, N> outbound_queue;
+        BaseQueue<unique_ptr<MerryBuffer<T, W>>, N>& inbound_queue;
+        BaseQueue<unique_ptr<MerryBuffer<T, W>>, N> outbound_queue;
         MerryTaskFunction<T, W> function;
 
+        char core = 0;
+        long int loss_counter = 0;
     public:
-        void register_interrupt();
-        bool call_synchronous();
+        TaskManagerFunction set_up;
+        TaskManagerFunction tear_down;
+        MerryTaskInterrupt interrupt;
+
+        MerryTask(MerryTaskFunction<T, W> function, TaskManagerFunction set_up, TaskManagerFunction tear_down, char core);
+        bool call();
 };
+
+
+template<typename T, size_t N, size_t W>
+class MerryTaskBuilder {
+    private:
+        unique_ptr<MerryTask<T, N, W>> irq_tasks[NUM_IRQS];
+        MerryMemoryOrigin<T, N, W> origin_queue;
+        BaseQueue<unique_ptr<MerryBuffer<T, W>>, N>& previous_task = this->origin_queue;
+    public:
+        bool register_irq_task(
+            MerryTaskFunction<T, W> function, 
+            TaskManagerFunction set_up, 
+            TaskManagerFunction tear_down, 
+            MerryTaskInterrupt interrupt,
+            char core
+        );
+        unique_ptr<MerryTask<T, N, W>> register_main_loop_task(
+            MerryTaskFunction<T, W> function, 
+            TaskManagerFunction set_up, 
+            TaskManagerFunction tear_down, 
+            char core
+        );
+
+}
+
+
+#define GENERATE_IRQ_FUNCTION(irqnum, acknowledge, type, size, width) \
+type autogen_task_irq_##irqnum() { \
+    MerryTask<type, size, width>::irq_tasks[irq_num].call_irq(); \
+    acknowledge(); \
+} \
+irq_set_exclusive_handler(irq_num, autogen_task_irq_##irqnum); 
+
 
 #include "board/templates/merry_go_round.tpp"
 

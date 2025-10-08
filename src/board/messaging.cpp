@@ -54,15 +54,27 @@ void fifo_core1_irq() {
 // *************************************************
 
 
-uint8_t message_channel_count = 0;
-int claim_message_channel_number() {
-    if(message_channel_count >= MAX_MESSAGE_QUEUES) {
-        return -1; // no more channels available
+// uint8_t message_channel_count = 0;
+// int claim_message_channel_number() {
+//     if(message_channel_count >= MAX_MESSAGE_QUEUES) {
+//         return -1; // no more channels available
+//     }
+//     message_channel_count++;
+//     return AVAIL_RECV_IRQS[message_channel_count - 1];
+// }
+
+
+// MessageSender::MessageSender(MessageChannel& channel) : channel(channel) {}
+
+
+// *************************************************
+// MESSAGING USING THREAD SAFE QUEUES
+// *************************************************
+
+template <typename T, size_t N, size_t W>
+MerryMemoryOrigin<T, N, W>::MerryMemoryOrigin() {
+    for(int buffer_number = 0; buffer_number < N; buffer_number++) {
+        unique_ptr<MerryBuffer<T, W>> buffer = std::make_unique<MerryBuffer<T, W>>();
+        this->push_back(buffer);
     }
-    message_channel_count++;
-    return AVAIL_RECV_IRQS[message_channel_count - 1];
 }
-
-
-MessageSender::MessageSender(MessageChannel& channel) : channel(channel) {}
-

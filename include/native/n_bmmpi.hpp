@@ -73,11 +73,10 @@ FIFOMessage message_from_uint32(uint32_t raw);
 template <typename T, int N>
 class BaseQueue {
     static_assert(N > 0, "N must be greater than 0");
-    static_assert(N & (N - 1) == 0, "N must be a power of 2");
+    static_assert((N & (N - 1)) == 0, "N must be a power of 2");
     protected: 
         T data[N];
         T default_value;
-        const int queue_buffer_mask = N - 1;
     public:
         virtual void flush() = 0;
         virtual T pop_front(bool* result) = 0;
@@ -88,6 +87,7 @@ class BaseQueue {
         static bool full(int head, int tail);
         static bool empty(int head, int tail);
         static int size(int head, int tail);
+
         static int wraparound_increment(int current);
 };
 
@@ -98,9 +98,16 @@ class RingQueue : protected BaseQueue<T, N> {
         unsigned int head = 0;
         unsigned int tail = 0;
     public:
+        RingQueue(T default_value);
         void flush() override;
         T pop_front(bool* result) override;
         bool push_back(const T value) override;
+
+        bool full() const { return BaseQueue<T, N>::full(head, tail); }
+        bool empty() const { return BaseQueue<T, N>::empty(head, tail); }
+        int size() const { return BaseQueue<T, N>::size(head, tail); }
+        int max_size() const { return N; }
+        static int wrap_increment(int current) { return BaseQueue<T, N>::wraparound_increment(current); }
 };
 
 
@@ -131,6 +138,7 @@ class ReceiverRouter {
 
 #endif // ENABLE_FIFO_MESSAGING == 1
 
+#include "base_queue.tpp"
 #include "ring_queue.tpp"
 
 #endif

@@ -2,6 +2,10 @@
 
 
 template <typename T, int N>
+RingQueue<T, N>::RingQueue(T default_value) : BaseQueue<T, N>(default_value) {}
+
+
+template <typename T, int N>
 void RingQueue<T, N>::flush() {
     this->head = 0;
     this->tail = 0;
@@ -23,13 +27,14 @@ bool RingQueue<T, N>::push_back(const T value) {
 
 template <typename T, int N>
 T RingQueue<T, N>::pop_front(bool *result) {
+    *result = true;
     if(BaseQueue<T, N>::empty(this->head, this->tail)) {
         *result = false;
         return this->default_value;
     }
 
     T data_value = this->data[this->head];
-    this->head = BaseQueue<T, N>::wraparound_increment(this->tail);
+    this->head = BaseQueue<T, N>::wraparound_increment(this->head);
 
     return data_value;
 }

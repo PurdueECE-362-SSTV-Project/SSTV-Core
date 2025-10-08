@@ -10,28 +10,26 @@ BaseQueue<T, N>::BaseQueue(T default_value) : default_value(default_value) {}
 
 template<typename T, int N>
 bool BaseQueue<T, N>::full(int head, int tail) {
-    return BaseQueue::size(head, tail, N) == max_size;
+    int size = BaseQueue<T, N>::size(head, tail);
+    return size == N;
 }
 
 
 template<typename T, int N>
 bool BaseQueue<T, N>::empty(int head, int tail) {
-    return BaseQueue::size(head, tail, N) == 0;
+    int size = BaseQueue<T, N>::size(head, tail);
+    return size == 0;
 }
 
 
 template<typename T, int N>
 int BaseQueue<T, N>::size(int head, int tail) {
-    if(tail > head) {
-        return tail - head;
-    }
-    else {
-        return (N - head) + tail + 1
-    }
+    int size = ((tail - head) & (N - 1)) + (tail != head);
+    return size;
 }
 
 
 template<typename T, int N>
 int BaseQueue<T, N>::wraparound_increment(int current) {
-    return (current + 1) & RING_QUEUE_BUFFER_MASK;
+    return (current + 1) & (N - 1);
 }

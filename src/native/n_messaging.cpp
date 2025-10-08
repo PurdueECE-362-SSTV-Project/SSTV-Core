@@ -1,4 +1,3 @@
-
 #include "native/n_bmmpi.hpp"
 
 
@@ -28,7 +27,7 @@ FIFOMessage message_from_uint32(uint32_t raw) {
     msg.dest_id = raw & FIFO_DEST_ID_MAX;
     msg.source_id = (raw >> FIFO_DEST_ID_SIZE) & FIFO_SOURCE_ID_MAX;
     msg.data = (raw >> (FIFO_DEST_ID_SIZE + FIFO_SOURCE_ID_SIZE)) & FIFO_DATA_MAX;
-    
+
     return msg;
 }
 

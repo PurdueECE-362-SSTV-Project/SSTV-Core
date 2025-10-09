@@ -2,6 +2,12 @@
 
 
 template <typename T, size_t N>
+MulticoreLocklessQueueSPSC<T, N>::MulticoreLocklessQueueSPSC(T default_value) : BaseQueue<T, N>(default_value) {
+    critical_section_init(&this->at_queue_cs);
+}
+
+
+template <typename T, size_t N>
 void MulticoreLocklessQueueSPSC<T, N>::flush() {
     bool result;
 
@@ -17,12 +23,12 @@ void MulticoreLocklessQueueSPSC<T, N>::flush() {
 template <typename T, size_t N>
 bool MulticoreLocklessQueueSPSC<T, N>::push_back(const T value) {
     size_t const current_tail = this->tail.load(memory_order_relaxed);
+    size_t const next_tail = BaseQueue<T, N>::wraparound_increment(current_tail);
 
-    if(BaseQueue<T, N>::full(this->head.load(memory_order_acquire), current_tail)) {
+    if(next_tail == this->head.load(memory_order_acquire)) {
         return false;
     }
 
-    size_t const next_tail = BaseQueue<T, N>::wraparound_increment(current_tail);
     this->data[next_tail] = value;
     this->tail.store(next_tail, memory_order_release);
 
@@ -34,7 +40,7 @@ template <typename T, size_t N>
 T MulticoreLocklessQueueSPSC<T, N>::pop_front(bool *result) {
     size_t const current_head = this->head.load(memory_order_relaxed);
 
-    if(BaseQueue<T, N>::empty(current_head, this->tail.load(memory_order_acquire))) {
+    if(current_head == this->tail.load(memory_order_acquire)) {
         *result = false;
         return this->default_value;
     }

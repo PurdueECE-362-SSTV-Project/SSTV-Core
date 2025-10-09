@@ -26,6 +26,7 @@ class InterruptQueue : protected RingQueue<T, N> {
     protected: 
         critical_section at_queue_cs;
     public:
+        InterruptQueue(T default_value);
         void flush() override;
         T pop_front(bool* result) override;
         bool push_back(const T value) override;
@@ -35,13 +36,44 @@ class InterruptQueue : protected RingQueue<T, N> {
 template <typename T, size_t N>
 class MulticoreLocklessQueueSPSC : protected BaseQueue<T, N> {
     protected: 
+        critical_section at_queue_cs;
         atomic<size_t> head = 0;
         atomic<size_t> tail = 0;
     public:
+        MulticoreLocklessQueueSPSC(T default_value);
         void flush() override;
         T pop_front(bool* result) override;
         bool push_back(const T value) override;
 };
+
+extern long DROP_COUNT;
+
+template<typename T, size_t W>
+struct _MerryBuffer {
+    uint32_t id;
+    T buffer[W];
+};
+
+
+template <typename T, size_t W>
+using MerryBuffer = _MerryBuffer<T, W>;
+
+
+template <typename T, size_t N, size_t W>
+class MerryMemoryOrigin : protected MulticoreLocklessQueueSPSC<MerryBuffer<T, W>, N> {
+    public: 
+        MerryMemoryOrigin(T default_value);
+};
+
+template <typename T, size_t N, size_t W>
+using PipelineTask = bool (*)(T);
+
+template <typename T, size_t N, size_t W>
+bool call_task(PipelineTask<T, N, W> task, BaseQueue<T, N>* pull_queue, BaseQueue<T, N>* push_queue);
+
+#include "board/templates/interrupt_queue.tpp"
+#include "board/templates/atomic_queue.tpp"
+#include "board/templates/call_task.tpp"
 
 
 #if ENABLE_FIFO_MESSAGING == 1
@@ -56,58 +88,20 @@ void init_fifo_irq_core0();
 void init_fifo_irq_core1();
 
 
-#include "board/templates/atomic_queue.tpp"
-
-
 #endif // ENABLE_FIFO_MESSAGING == 1
 
-#if ENABLE_MERRY_MEMORY == 1 
+// template <typename T, int W>
+// class MerryTaskFunction {
+//     public:
+//     virtual bool run(unique_ptr<MerryBuffer<T, W>>& buffer_span);
+// };
 
 
-template<typename T, size_t W>
-struct _MerryBuffer {
-    uint32_t id;
-    T buffer[W];
-};
-
-
-template <typename T, size_t W>
-using MerryBuffer = _MerryBuffer<T, W>;
-
-
-/**
- * @brief memory origin used to supply addresses to queue-based pipelines.
- *
- * This class is intended to be implemented as a singleton: every program
- * should have exactly one `MerryMemoryOrigin`. For queue-based memory
- * address pipelines, the origin is the single authoritative allocator and
- * deallocator. As the pipeline starts, the origin will allocate and
- * deallocate memory in one place and "pump" addresses into the pipeline's
- * inbound queue. Once the origin observes that all addresses are enqueued
- * in the pipeline, the pipeline stage connected to the origin will only
- * receive address pushes from the task assigned to its inbound queue.
- *
- * In short: this centralizes address management for pipeline-based memory
- * flows and guarantees a single source of allocation for the pipeline.
- */
-template <typename T, size_t N, size_t W>
-class MerryMemoryOrigin : protected MulticoreLocklessQueueSPSC<MerryBuffer<T, W>, N> {
-    public: 
-        MerryMemoryOrigin();
-};
-
-template <typename T, int W>
-class MerryTaskFunction {
-    public:
-    virtual bool run(unique_ptr<MerryBuffer<T, W>>& buffer_span);
-};
-
-
-typedef void(*TaskManagerFunction)();
-typedef struct MerryTaskInterrupt {
-    unsigned int irq_num = 0;
-    TaskManagerFunction acknowledge;
-} MerryTaskInterrupt;
+// typedef void(*TaskManagerFunction)();
+// typedef struct MerryTaskInterrupt {
+//     unsigned int irq_num = 0;
+//     TaskManagerFunction acknowledge;
+// } MerryTaskInterrupt;
 
 
 /**
@@ -119,69 +113,65 @@ typedef struct MerryTaskInterrupt {
  * while compute heavy tasks like signal processing should just be done with call_synchronous in the main loop on one of the cores. Remember you can have only one per core
  */
 
-#define NUM_IRQS 52
+// #define NUM_IRQS 52
 
-template<typename T, size_t N, size_t W>
-class MerryTask {
-    private: 
-        BaseQueue<unique_ptr<MerryBuffer<T, W>>, N> inbound_queue;
-        BaseQueue<unique_ptr<MerryBuffer<T, W>>, N> outbound_queue;
-        MerryTaskFunction<T, W> function;
+// template<typename T, size_t N, size_t W>
+// class MerryTask {
+//     private: 
+//         BaseQueue<unique_ptr<MerryBuffer<T, W>>, N> inbound_queue;
+//         BaseQueue<unique_ptr<MerryBuffer<T, W>>, N> outbound_queue;
+//         MerryTaskFunction<T, W> function;
 
-        long int loss_counter = 0;
-    public:
-        TaskManagerFunction set_up;
-        TaskManagerFunction tear_down;
-        MerryTaskInterrupt interrupt;
+//         long int loss_counter = 0;
+//     public:
+//         TaskManagerFunction set_up;
+//         TaskManagerFunction tear_down;
+//         MerryTaskInterrupt interrupt;
 
-        MerryTask(MerryTaskFunction<T, W> function, TaskManagerFunction set_up, TaskManagerFunction tear_down);
-        void set_inbound_queue(BaseQueue<unique_ptr<MerryBuffer<T, W>>, N>* inbound_queue);
-        void set_outbound_queue(BaseQueue<unique_ptr<MerryBuffer<T, W>>, N> outbound_queue);
-        BaseQueue<unique_ptr<MerryBuffer<T, W>>, N>* get_outbound_queue();
-        bool call();
-};
-
-
-// no synchronization primatives. Assumes that you do not cross back from core 1 to 0 after going from 0 to 1. Must start core 0
-template<typename T, size_t N, size_t W>
-class MerryTaskBuilder {
-    private:
-        const MerryMemoryOrigin<T, N, W> origin_queue;
-        BaseQueue<unique_ptr<MerryBuffer<T, W>>, N>* previous_task_output_queue = &this->origin_queue;
-    public:
-        unique_ptr<MerryTask<T, N, W>> irq_tasks[NUM_IRQS];
-        bool register_irq_task(
-            MerryTaskFunction<T, W> function, 
-            TaskManagerFunction set_up, 
-            TaskManagerFunction tear_down, 
-            MerryTaskInterrupt interrupt
-        );
-        unique_ptr<MerryTask<T, N, W>> register_main_loop_task(
-            MerryTaskFunction<T, W> function, 
-            TaskManagerFunction set_up, 
-            TaskManagerFunction tear_down
-        );
-        void set_most_recent_intercore();
-        void finish_task_route();
-};
+//         MerryTask(MerryTaskFunction<T, W> function, TaskManagerFunction set_up, TaskManagerFunction tear_down);
+//         void set_inbound_queue(BaseQueue<unique_ptr<MerryBuffer<T, W>>, N>* inbound_queue);
+//         void set_outbound_queue(BaseQueue<unique_ptr<MerryBuffer<T, W>>, N> outbound_queue);
+//         BaseQueue<unique_ptr<MerryBuffer<T, W>>, N>* get_outbound_queue();
+//         bool call();
+// };
 
 
-template<typename T, size_t N, size_t W>
-extern MerryTaskBuilder<T, N, W> GLOBAL_TASK_CONTAINER;
+// // no synchronization primatives. Assumes that you do not cross back from core 1 to 0 after going from 0 to 1. Must start core 0
+// template<typename T, size_t N, size_t W>
+// class MerryTaskBuilder {
+//     private:
+//         const MerryMemoryOrigin<T, N, W> origin_queue;
+//         BaseQueue<unique_ptr<MerryBuffer<T, W>>, N>* previous_task_output_queue = &this->origin_queue;
+//     public:
+//         unique_ptr<MerryTask<T, N, W>> irq_tasks[NUM_IRQS];
+//         bool register_irq_task(
+//             MerryTaskFunction<T, W> function, 
+//             TaskManagerFunction set_up, 
+//             TaskManagerFunction tear_down, 
+//             MerryTaskInterrupt interrupt
+//         );
+//         unique_ptr<MerryTask<T, N, W>> register_main_loop_task(
+//             MerryTaskFunction<T, W> function, 
+//             TaskManagerFunction set_up, 
+//             TaskManagerFunction tear_down
+//         );
+//         void set_most_recent_intercore();
+//         void finish_task_route();
+// };
 
 
-#define IRQ_FN_NAME(num) autogen_task_irq_##num
-#define GENERATE_IRQ_FUNCTION(irqnum, acknowledge, type, size, width) \
-type IRQ_FN_NAME(irqnum)() { \
-    GLOBAL_TASK_CONTAINER.irq_tasks[irqnum]->call_irq(); \
-    acknowledge(); \
-} \
-irq_set_exclusive_handler(irqnum, IRQ_FN_NAME(irqnum));
+// template<typename T, size_t N, size_t W>
+// extern MerryTaskBuilder<T, N, W> GLOBAL_TASK_CONTAINER;
 
 
-#include "board/templates/merry_go_round.tpp"
+// #define IRQ_FN_NAME(num) autogen_task_irq_##num
+// #define GENERATE_IRQ_FUNCTION(irqnum, acknowledge, type, size, width) \
+// type IRQ_FN_NAME(irqnum)() { \
+//     GLOBAL_TASK_CONTAINER.irq_tasks[irqnum]->call_irq(); \
+//     acknowledge(); \
+// } \
+// irq_set_exclusive_handler(irqnum, IRQ_FN_NAME(irqnum));
 
-#endif // ENABLE_MERRYGOROUND_MEMORY == 1
 
 #if ENABLE_SHARED_MEMORY == 1
 

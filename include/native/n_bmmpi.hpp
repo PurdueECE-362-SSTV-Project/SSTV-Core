@@ -77,6 +77,7 @@ class BaseQueue {
     protected: 
         T data[N];
         T default_value;
+        unsigned int size = 0;
     public:
         virtual void flush() = 0;
         virtual T pop_front(bool* result) = 0;
@@ -86,7 +87,6 @@ class BaseQueue {
 
         static bool full(int head, int tail);
         static bool empty(int head, int tail);
-        static int size(int head, int tail);
 
         static int wraparound_increment(int current);
 };
@@ -103,9 +103,8 @@ class RingQueue : protected BaseQueue<T, N> {
         T pop_front(bool* result) override;
         bool push_back(const T value) override;
 
-        bool full() const { return BaseQueue<T, N>::full(head, tail); }
-        bool empty() const { return BaseQueue<T, N>::empty(head, tail); }
-        int size() const { return BaseQueue<T, N>::size(head, tail); }
+        bool full() const { return this->size == N; }
+        bool empty() const { return this->size == 0; }
         int max_size() const { return N; }
         static int wrap_increment(int current) { return BaseQueue<T, N>::wraparound_increment(current); }
 };

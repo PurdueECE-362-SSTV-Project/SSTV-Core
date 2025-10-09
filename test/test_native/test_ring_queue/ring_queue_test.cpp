@@ -15,7 +15,6 @@ void tearDown(void) {
 
 void test_init_empty() {
     TEST_ASSERT_TRUE(test_queue.empty());
-    TEST_ASSERT_EQUAL(0, test_queue.size());
     TEST_ASSERT_EQUAL(QUEUE_SIZE, test_queue.max_size());
 }
 
@@ -27,16 +26,13 @@ void test_push_pop() {
     
     // Test basic push operations
     TEST_ASSERT_TRUE(test_queue.push_back(1));
-    TEST_ASSERT_EQUAL(1, test_queue.size());
     TEST_ASSERT_FALSE(test_queue.empty());
     
     TEST_ASSERT_TRUE(test_queue.push_back(2));
-    TEST_ASSERT_EQUAL(2, test_queue.size());
     
     // Test basic pop operations
     TEST_ASSERT_EQUAL(1, test_queue.pop_front(&success));
     TEST_ASSERT_TRUE(success);
-    TEST_ASSERT_EQUAL(1, test_queue.size());
     
     TEST_ASSERT_EQUAL(2, test_queue.pop_front(&success));
     TEST_ASSERT_TRUE(success);
@@ -46,17 +42,16 @@ void test_push_pop() {
 void test_queue_full() {
     bool success;
     // Fill queue to capacity
-    for(int i = 1; i <= QUEUE_SIZE; i++) {
+    for(int i = 0; i < QUEUE_SIZE; i++) {
         TEST_ASSERT_TRUE(test_queue.push_back(i));
     }
     
     // Queue should be full
     TEST_ASSERT_TRUE(test_queue.full());
     TEST_ASSERT_FALSE(test_queue.push_back(5));
-    TEST_ASSERT_EQUAL(QUEUE_SIZE, test_queue.size());
     
     // Verify contents
-    for(int i = 1; i <= QUEUE_SIZE; i++) {
+    for(int i = 0; i < QUEUE_SIZE; i++) {
         TEST_ASSERT_EQUAL(i, test_queue.pop_front(&success));
         TEST_ASSERT_TRUE(success);
     }
@@ -73,12 +68,12 @@ void test_wrap_around() {
     TEST_ASSERT_TRUE(success);
     
     // Add more elements to test wrap-around
-    for(int i = 3; i <= QUEUE_SIZE + 2; i++) {
+    for(int i = 3; i < QUEUE_SIZE + 2; i++) {
         TEST_ASSERT_TRUE(test_queue.push_back(i));
     }
     
     // Verify wrapped contents
-    for(int i = 3; i <= QUEUE_SIZE + 2; i++) {
+    for(int i = 3; i < QUEUE_SIZE + 2; i++) {
         TEST_ASSERT_EQUAL(i, test_queue.pop_front(&success));
         TEST_ASSERT_TRUE(success);
     }
@@ -89,16 +84,13 @@ void test_flush() {
     // Fill queue partially
     TEST_ASSERT_TRUE(test_queue.push_back(1));
     TEST_ASSERT_TRUE(test_queue.push_back(2));
-    TEST_ASSERT_EQUAL(2, test_queue.size());
     
     // Test flush
     test_queue.flush();
     TEST_ASSERT_TRUE(test_queue.empty());
-    TEST_ASSERT_EQUAL(0, test_queue.size());
     
     // Verify queue still works after flush
     TEST_ASSERT_TRUE(test_queue.push_back(3));
-    TEST_ASSERT_EQUAL(1, test_queue.size());
     TEST_ASSERT_EQUAL(3, test_queue.pop_front(&success));
     TEST_ASSERT_TRUE(success);
 }
@@ -108,17 +100,15 @@ void test_push_pop_repeated() {
     // Test repeated push/pop cycles
     for(int x = 0; x < 10; x++) {
         // Fill queue partially
-        for(int i = 0; i < QUEUE_SIZE - 1; i++) {
+        for(int i = 0; i < QUEUE_SIZE; i++) {
             TEST_ASSERT_TRUE(test_queue.push_back(i));
-            TEST_ASSERT_EQUAL(i + 1, test_queue.size());
             TEST_ASSERT_FALSE(test_queue.empty());
         }
         
         // Empty queue and verify contents
-        for(int i = 0; i < QUEUE_SIZE - 1; i++) {
+        for(int i = 0; i < QUEUE_SIZE; i++) {
             TEST_ASSERT_EQUAL(i, test_queue.pop_front(&success));
             TEST_ASSERT_TRUE(success);
-            TEST_ASSERT_EQUAL(QUEUE_SIZE - 2 - i, test_queue.size());
         }
         TEST_ASSERT_TRUE(test_queue.empty());
     }

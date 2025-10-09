@@ -1,6 +1,12 @@
 #include "board/bmmpi.hpp"
 
 
+template <typename T, size_t N>
+InterruptQueue<T, N>::InterruptQueue(T default_value) : RingQueue<T, N>(default_value) {
+    critical_section_init(&this->at_queue_cs);
+}
+
+
 template <typename T, int N>
 void InterruptQueue<T, N>::flush() {
     critical_section_enter_blocking(&this->at_queue_cs);

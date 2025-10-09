@@ -7,7 +7,7 @@ InterruptQueue<T, N>::InterruptQueue(T default_value) : RingQueue<T, N>(default_
 }
 
 
-template <typename T, int N>
+template <typename T, size_t N>
 void InterruptQueue<T, N>::flush() {
     critical_section_enter_blocking(&this->at_queue_cs);
     RingQueue<T, N>::flush();
@@ -15,7 +15,7 @@ void InterruptQueue<T, N>::flush() {
 }
 
 
-template <typename T, int N>
+template <typename T, size_t N>
 bool InterruptQueue<T, N>::push_back(const T value) {
     critical_section_enter_blocking(&this->at_queue_cs);
     bool result = RingQueue<T, N>::push_back(value);
@@ -25,7 +25,7 @@ bool InterruptQueue<T, N>::push_back(const T value) {
 }
 
 
-template <typename T, int N>
+template <typename T, size_t N>
 T InterruptQueue<T, N>::pop_front(bool *result) {
     critical_section_enter_blocking(&this->at_queue_cs);
     T data_value = RingQueue<T, N>::pop_front(result);

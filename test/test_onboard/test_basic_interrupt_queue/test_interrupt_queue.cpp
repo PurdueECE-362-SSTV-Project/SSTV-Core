@@ -51,7 +51,7 @@ void setUp(void) {
 }
 
 void tearDown(void) {
-    tearDownSourceIRQ
+    tearDownSourceIRQ();
 }
 
 void test_basic_push_pull() {

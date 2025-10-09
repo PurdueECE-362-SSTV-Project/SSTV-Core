@@ -39,6 +39,7 @@ class MulticoreLocklessQueueSPSC : protected BaseQueue<T, N> {
         critical_section at_queue_cs;
         atomic<size_t> head = 0;
         atomic<size_t> tail = 0;
+        atomic<size_t> count = 0;
     public:
         MulticoreLocklessQueueSPSC(T default_value);
         void flush() override;

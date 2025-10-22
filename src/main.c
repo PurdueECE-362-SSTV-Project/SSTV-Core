@@ -18,6 +18,8 @@
 ////    ////    ////    ////
 // ** // ** // ** //
 // Global Constants and Definations
+
+
 const char keymap[16] = "DCBA#9630852*741";
 
 // Global Variables
@@ -53,10 +55,7 @@ void init_keypad() {
 // Peripheral Initialization 
 void init_rotary_encoder() {
     // INIT INPUTS // 
-    sio_hw->gpio_oe_clr = (1u << (21)) | (1u << (26));
- 
-    custom_input_funtion_set(21, GPIO_FUNC_SIO); // 21
-    custom_input_funtion_set(26, GPIO_FUNC_SIO); // 26
+    gpio_init()
 }
 // ** // ** // ** //
 
@@ -104,6 +103,7 @@ void init_keypad_irq() {
 }
 
 int main (void) {
+    stdio_init_all();
     // Inisializing GPIO and Peripherals 
     init_inputs();
     init_rotary_encoder();

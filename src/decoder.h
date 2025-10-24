@@ -43,7 +43,6 @@ typedef enum {
     uint16_t freq;      // Frequency (upper bound if applicable)
     uint16_t freq_lb;   // Frequency lower bound
     uint16_t diff_time; // Difference in time in ms
-    uint16_t code;      // VIS Code
  } Decoder_FSM_Val;
 
 // Global Constants
@@ -63,3 +62,4 @@ sstv_mode_t Martin2  =  {.decMode = MARTIN_2, .color = GBR,   .row = 256, .col =
 sstv_mode_t Scottie2 =  {.decMode = SCOTTIE_2,.color = GBR,   .row = 256, .col = 160, .tranTime = 71, .lineTime = 264.192, .lineS = 9.0,   .colorS = 0.0, .format = NULL};
 sstv_mode_t PD50   =    {.decMode = PD_50,    .color = YCRCB, .row = 320, .col = 240, .tranTime = 50, .lineTime = 183.04,  .lineS = 20.0,  .colorS = 0.0, .format = NULL};
 sstv_mode_t PD90   =    {.decMode = PD_90,    .color = YCRCB, .row = 320, .col = 240, .tranTime = 90, .lineTime = 340.48,  .lineS = 20.0,  .colorS = 0.0, .format = NULL};
+sstv_mode_t NULL_Mode = {.decMode = NULL,     .color = NULL,  .row = NULL, .col = NULL, .tranTime = NULL, .lineTime = 0, .lineS = 0, .colorS = 0, .format = NULL};

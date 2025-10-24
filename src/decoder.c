@@ -7,11 +7,9 @@
 
 #include "decoder.h"
 
-void header() {
-    Header_State state = IDLE;
-    Header_State nextState;
-    Decoder_FSM_Val in;
-    uint16_t VIS_Code;
+int header(Decoder_FSM_Val in) {
+    Header_State state, nextState;
+    uint16_t VIS_Code; // Stores the VIS Code
     uint bit;
     uint8_t codeSum; // Used to compute parity
 
@@ -58,7 +56,7 @@ void header() {
             break;
 
         case(STOP_BIT):
-            if (in.freq == h_stop.freq && in.diff_time == h_stop.diff_time) nextState = SYNC1;
+            if (in.freq == h_stop.freq && in.diff_time == h_stop.diff_time) return VIS_Code; // If transmission is successful, return the received code
             else if (in.freq != h_stop.freq || in.diff_time > h_stop.diff_time) nextState = TRANSMISSION_ERROR;
             break;
 
@@ -71,9 +69,23 @@ void header() {
             nextState = SYNC1;
             break;
     }
-    return;
+    return NULL;
+}
+
+sstv_mode_t initializeMode(int code) {
+    if (code == ROBOT_36) return Robot36;
+    else if (code == ROBOT_72) return Robot72;
+    else if (code == MARTIN_2) return Martin2;
+    else if (code == SCOTTIE_2) return Scottie2;
+    else if (code == PD_50) return PD50;
+    else if (code == PD_90) return PD90;
+    else return NULL_Mode;
 }
 
 void decoder() {
+    Decoder_FSM_Val input;
+    int VIS_Code = header(input);
+    sstv_mode_t mode = initializeMode(VIS_Code);
+        if (mode == NULL_Mode) printf("Received encoding type is not recognized");
     return; 
 }

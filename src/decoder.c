@@ -26,6 +26,7 @@ int header(Decoder_FSM_Val in) {
 
         case (SYNC2):
             if (in.freq == h_sync2.freq && in.diff_time == h_sync2.diff_time) nextState = START_BIT;
+            if (in.freq == h_hold.freq && in.diff_time == h_hold.diff_time) nextState = SYNC2; // Overlapping case
             else if (in.freq != h_sync2.freq || in.diff_time > h_sync2.diff_time) nextState = TRANSMISSION_ERROR;
             break;
 
@@ -62,7 +63,7 @@ int header(Decoder_FSM_Val in) {
 
         case (TRANSMISSION_ERROR):
             nextState = SYNC1;
-            printf("Transmission Error");
+            printf("\nTransmission Error");
             break;
 
         default:
@@ -86,6 +87,6 @@ void decoder() {
     Decoder_FSM_Val input;
     int VIS_Code = header(input);
     sstv_mode_t mode = initializeMode(VIS_Code);
-        if (mode == NULL_Mode) printf("Received encoding type is not recognized");
+        if (mode.decMode == NULL) printf("\nReceived encoding type is not recognized");
     return; 
 }

@@ -8,10 +8,13 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/Users/andre/Downloads/SSTV-Core/include",
-                "C:/Users/andre/Downloads/SSTV-Core/src",
+                "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/include",
+                "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/src",
+                "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/lib/kissfft-master",
+                "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/lib/libpng",
+                "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/lib/zlib",
                 "C:/Users/andre/.platformio/packages/framework-picosdk/generated",
-                "C:/Users/andre/Downloads/SSTV-Core/.pio/build/proton/generated",
+                "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/.pio/build/proton/generated",
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/boards/include",
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/common/boot_picobin_headers/include",
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/common/boot_picoboot_headers/include",
@@ -173,16 +176,19 @@
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2_common/pico_standard_link/include",
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2_common/pico_fix/include",
                 "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2350/boot_stage2/asminclude",
-                "C:/Users/andre/Downloads/SSTV-Core/lib/kissfft",
+                "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/lib/kissfft",
                 ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/Users/andre/Downloads/SSTV-Core/include",
-                    "C:/Users/andre/Downloads/SSTV-Core/src",
+                    "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/include",
+                    "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/src",
+                    "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/lib/kissfft-master",
+                    "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/lib/libpng",
+                    "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/lib/zlib",
                     "C:/Users/andre/.platformio/packages/framework-picosdk/generated",
-                    "C:/Users/andre/Downloads/SSTV-Core/.pio/build/proton/generated",
+                    "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/.pio/build/proton/generated",
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/boards/include",
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/common/boot_picobin_headers/include",
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/common/boot_picoboot_headers/include",
@@ -344,7 +350,7 @@
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2_common/pico_standard_link/include",
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2_common/pico_fix/include",
                     "C:/Users/andre/.platformio/packages/framework-picosdk/src/rp2350/boot_stage2/asminclude",
-                    "C:/Users/andre/Downloads/SSTV-Core/lib/kissfft",
+                    "C:/Users/andre/OneDrive/Desktop/ECE36200/SSTV-Core/lib/kissfft",
                     ""
                 ]
             },

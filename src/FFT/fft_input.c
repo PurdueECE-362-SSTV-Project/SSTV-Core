@@ -34,10 +34,10 @@ float fft_input_custom_gen (float time) {
     else if (TIME_BOUNDS(time_n, TIME_START_BIT, TIME_VIS_CODE))        output_val = gen_sin(FREQ_VIS_HIGH);
     else if (TIME_BOUNDS(time_n, TIME_VIS_CODE, TIME_PARITY_BIT))       output_val = gen_sin(FREQ_VIS_LOW);
     else if (TIME_BOUNDS(time_n, TIME_PARITY_BIT, TIME_STOP_BIT))       output_val = gen_sin(FREQ_STOP_BIT);
-    else if (TIME_BOUNDS(time_n, TIME_STOP_BIT, SFREQ))     output_val = gen_sin(FREQ_TRANSMISSION);
+    else if (TIME_BOUNDS(time_n, TIME_STOP_BIT, SFREQ))                 output_val = gen_sin(FREQ_TRANSMISSION);
     else output_val = 0.0;
 
-    return output_val;
+    return output_val; 
 }
 
 // float fft_input_custom_gen (float time) {

@@ -7,6 +7,9 @@
         "stdio.h": "c",
         "adafruit_gfx.h": "c",
         "adafruit_i2cdevice.h": "c",
-        "adafruit_spidevice.h": "c"
+        "adafruit_spidevice.h": "c",
+        "kiss_fft.h": "c",
+        "kiss_fftr.h": "c",
+        "functional": "c"
     }
 }

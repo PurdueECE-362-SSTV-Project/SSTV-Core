@@ -69,19 +69,24 @@ typedef struct {
  } Decoder_FSM_Val;
 
  // Time Keeping
- #define TIMER1_ALARM0 ((timer1_hw->timerawh) << 32 | (timer1_hw->timerawl))
+#define TIMER1_ALARM0 ((timer1_hw->timerawh) << 32 | (timer1_hw->timerawl))
 uint16_t diffrential_time = 0;
 
 // Threshold values
 #define FREQ_TH 50 // +/- Hz
 #define	TIME_DIFF_MS_TH 5 // +/- ms
 
-#define THRESHOLD(ref_val, target, thr)     ((ref_val) >= ((target) - (thr)) && (ref_val) <= ((target) + (thr)))
-#define OUT_OF_BOUND(ref_val, target, thr)  ((ref_val) > ((target) + (thr)))
+#define THRESHOLD(ref_val, target, thr)                     ((ref_val) <= ((target) + (thr)) && (ref_val) >= ((target) - (thr)) )
+#define OUT_OF_BOUND(ref_val, target, thr)                  ((ref_val) > ((target) + (thr)))
+#define BOUND(ref_val, upper_limit, lower_limit, thr)       ((ref_val) <= ((upper_limit) + (thr)) && (ref_val) >= ((lower_limit) - (thr)))
 
 // Threshold Check
 #define THRESH_FREQ(ref_val, target)    THRESHOLD(ref_val, target, FREQ_TH)
 #define THRESH_TIME(target)             THRESHOLD(diffrential_time, target, TIME_DIFF_MS_TH)
+
+// Upper bound and lower bound
+#define BOUND_FREQ(ref_val, upper, lower)     BOUND(ref_val, upper, lower, FREQ_TH)
+#define BOUND_TIME(ref_val, upper, lower)     BOUND(ref_val, upper, lower, TIME_DIFF_MS_TH)
 
 // Out of Bound Logic
 #define TIME_OOB(target)                OUT_OF_BOUND(diffrential_time, target, TIME_DIFF_MS_TH)

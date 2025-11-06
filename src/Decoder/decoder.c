@@ -17,7 +17,7 @@ const Decoder_FSM_Val h_code      = {.curState  = CODE,        .freq = 1300,   .
 const Decoder_FSM_Val h_parity    = {.curState  = PARITY_BIT,  .freq = 1300,   .freq_lb = 1100,    .diff_time = 30};
 const Decoder_FSM_Val h_stop      = {.curState  = STOP_BIT,    .freq = 1200,   .freq_lb = NULL,    .diff_time = 30};
 const Decoder_FSM_Val h_tError    = {.curState  = TRANS_ERROR, .freq = 2300,   .freq_lb = NULL,    .diff_time = 300};     // Different Kind of IDLE
-const Decoder_FSM_Val h_decode    = {.curState  = DECODE_MODE, .freq = 2300,   .freq_lb = 1100,    .diff_time = 300};     // Goes into Decoding mode
+const Decoder_FSM_Val h_decode    = {.curState  = DECODE_MODE, .freq = 2300,   .freq_lb = 1100,    .diff_time = 300};     // Goes into Decoding mode    <<--- change freq range
 
 // SSTV MODE Vars
 const sstv_mode_t Robot36     =  {.decMode = ROBOT_36,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 36,     .lineTime = 135,     .lineS = 10.5,  .colorS = 4.5, .format = 1};
@@ -61,10 +61,6 @@ int header_fsm(Decoder_FSM_Val in, uint16_t freq) {
                 // If stays in state longer than it's supposed to
                 else if (TIME_OOB(FSM_exp_curr.diff_time))
                     h_nextState = IDLE;
-
-                // If within Threshold - remain in state
-                else
-                    h_nextState = SYNC1;
             break;
 
         case (SYNC_HOLD): 
@@ -81,93 +77,130 @@ int header_fsm(Decoder_FSM_Val in, uint16_t freq) {
                 // If stays in state longer than it's supposed to
                 else if (TIME_OOB(FSM_exp_curr.diff_time))
                     h_nextState = IDLE;
+            break;
 
-                // If within Threshold - remain in state
-                else
-                    h_nextState = SYNC_HOLD;
+        case (SYNC2): 
+                // If not within threshold - freq changed to next_state freq
+                if (!THRESH_FREQ(freq, FSM_exp_curr.freq))
+                    // Diff_time is within Bounds - Move to next_state
+                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
+                        h_nextState = START_BIT;
+
+                    // If Time if Out of Bounds - go to IDLE (error)
+                    else 
+                        h_nextState = IDLE;
+
+                // If stays in state longer than it's supposed to
+                else if (TIME_OOB(FSM_exp_curr.diff_time))
+                    h_nextState = IDLE;
+            break;
+
+        case (START_BIT): 
+                // If not within threshold - freq changed to next_state freq
+                if (!BOUND_FREQ(freq, FSM_exp_curr.freq, FSM_exp_curr.freq_lb))
+                    // Diff_time is within Bounds - Move to next_state
+                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
+                        h_nextState = CODE;
+
+                    // If Time if Out of Bounds - go to IDLE (error)
+                    else 
+                        h_nextState = IDLE;
+
+                // If stays in state longer than it's supposed to
+                else if (TIME_OOB(FSM_exp_curr.diff_time))
+                    h_nextState = IDLE;
+            break;
+
+        case (CODE): 
+                // If not within threshold - freq changed to next_state freq
+                if (!BOUND_FREQ(freq, FSM_exp_curr.freq, FSM_exp_curr.freq_lb))
+                    // Diff_time is within Bounds - Move to next_state
+                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
+                        h_nextState = PARITY_BIT;
+
+                    // If Time if Out of Bounds - go to IDLE (error)
+                    else 
+                        h_nextState = IDLE;
+
+                // If stays in state longer than it's supposed to
+                else if (TIME_OOB(FSM_exp_curr.diff_time))
+                    h_nextState = IDLE;
+
+
+                // VIS CODE writing //
+                if      (THRESH_FREQ(freq, 1300)) bit = 0; 
+                else if (THRESH_FREQ(freq, 1100)) bit = 1; // Determine input binary val
+                else {
+                    bit = 0;
+                    printf("Code bit in unknown state");
+                }
+                VIS_Code = (VIS_Code << 1u) + bit; // Add value to code
+            break;
+
+        case (PARITY_BIT): 
+                // If not within threshold - freq changed to next_state freq
+                if (!BOUND_FREQ(freq, FSM_exp_curr.freq, FSM_exp_curr.freq_lb))
+                    // Diff_time is within Bounds - Move to next_state
+                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
+                        h_nextState = STOP_BIT;
+
+                    // If Time if Out of Bounds - go to IDLE (error)
+                    else 
+                        h_nextState = IDLE;
+
+                // If stays in state longer than it's supposed to
+                else if (TIME_OOB(FSM_exp_curr.diff_time))
+                    h_nextState = IDLE;
+
+                // Calculate Parity // 
+                uint16_t temp = VIS_Code;
+                if      (THRESH_FREQ(freq, 1300)) bit = 0;
+                else if (THRESH_FREQ(freq, 1100)) bit = 1; // Determine parity bit
+                else {
+                    bit = 0;
+                    printf("Parity bit in unknown state");
+                }
+                for (int i = 0; i < 7; i++) {
+                    codeSum += (temp & 1);  // Get LSB
+                    temp >>= 1;             // Shift right 1 bit
+                }
+                if ((codeSum + bit) % 2) h_nextState = TRANS_ERROR; // Detect parity mismatch
+            break;
+
+        case (STOP_BIT): 
+                // If not within threshold - freq changed to next_state freq
+                if (!THRESH_FREQ(freq, FSM_exp_curr.freq))
+                    // Diff_time is within Bounds - Move to next_state
+                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
+                        h_nextState = DECODE_MODE;
+
+                    // If Time if Out of Bounds - go to IDLE (error)
+                    else 
+                        h_nextState = IDLE;
+
+                // If stays in state longer than it's supposed to
+                else if (TIME_OOB(FSM_exp_curr.diff_time))
+                    h_nextState = IDLE;
+            break;
+
+        case (DECODE_MODE): 
+                // If not within threshold - freq changed to next_state freq
+                if (!BOUND_FREQ(freq, FSM_exp_curr.freq, FSM_exp_curr.freq_lb))
+                    // Diff_time is within Bounds - Move to next_state
+                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
+                        h_nextState = IDLE;
+
+                    // If Time if Out of Bounds - go to IDLE (error)
+                    else 
+                        h_nextState = IDLE;
+
+                // If stays in state longer than it's supposed to
+                else if (TIME_OOB(FSM_exp_curr.diff_time))
+                    h_nextState = IDLE;
             break;
         
         default:
                 h_nextState = IDLE;
-            break;
-    }
-
-    switch (h_nextState) {
-        case (IDLE): 
-            if (THRESHOLD(in.freq, h_sync1.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_sync1.diff_time, TIME_DIFF_MS_TH)) h_nextState = SYNC_HOLD;
-            else h_nextState = h_nextState;
-            break;
-
-        case (SYNC1): 
-            if (THRESHOLD(in.freq, h_sync1.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_sync1.diff_time, TIME_DIFF_MS_TH)) h_nextState = SYNC_HOLD;
-            else h_nextState = h_nextState;
-            break;
-
-        case (SYNC_HOLD):
-            if (THRESHOLD(in.freq, h_hold.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_hold.diff_time, TIME_DIFF_MS_TH)) h_nextState = SYNC2;
-            else if (!THRESHOLD(in.freq, h_hold.freq, FREQ_TH) || in.diff_time > (h_hold.diff_time + TIME_DIFF_MS_TH)) h_nextState = TRANS_ERROR;
-            else h_nextState = h_nextState;
-            break;
-
-        case (SYNC2):
-            if (THRESHOLD(in.freq, h_sync2.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_sync2.diff_time, TIME_DIFF_MS_TH)) h_nextState = START_BIT;
-            else if (THRESHOLD(in.freq, h_hold.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_hold.diff_time, TIME_DIFF_MS_TH)) h_nextState = SYNC2; // Overlapping case
-            else if (!THRESHOLD(in.freq, h_sync2.freq, FREQ_TH) || in.diff_time > (h_sync2.diff_time + TIME_DIFF_MS_TH)) h_nextState = TRANS_ERROR;
-            else h_nextState = h_nextState;
-            break;
-
-        case (START_BIT):
-            if (THRESHOLD(in.freq, h_start.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_start.diff_time, TIME_DIFF_MS_TH)) h_nextState = CODE;
-            else if (!THRESHOLD(in.freq, h_start.freq, FREQ_TH) || in.diff_time > (h_start.diff_time + TIME_DIFF_MS_TH)) h_nextState = TRANS_ERROR;
-            else h_nextState = h_nextState;
-            break;
-
-        case (CODE):
-            if (THRESHOLD(in.freq, h_code.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_code.diff_time, TIME_DIFF_MS_TH)) h_nextState = PARITY_BIT;
-            else if (!THRESHOLD(in.freq, h_code.freq, FREQ_TH) || in.diff_time > (h_code.diff_time + TIME_DIFF_MS_TH)) h_nextState = TRANS_ERROR;
-            else h_nextState = h_nextState;
-            
-            if (THRESHOLD(in.freq, 1300, FREQ_TH)) bit = 0; 
-            else if (THRESHOLD(in.freq, 1100, FREQ_TH)) bit = 1; // Determine input binary val
-            else {
-                bit = 0;
-                printf("Code bit in unknown state");
-            }
-            VIS_Code = (VIS_Code << 1u) + bit; // Add value to code
-            break;
-
-        case(PARITY_BIT):
-            if (THRESHOLD(in.freq, h_parity.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_parity.diff_time, TIME_DIFF_MS_TH)) h_nextState = STOP_BIT;
-            else if (!THRESHOLD(in.freq, h_parity.freq, FREQ_TH) || in.diff_time > (h_parity.diff_time + TIME_DIFF_MS_TH)) h_nextState = TRANS_ERROR;
-            else h_nextState = h_nextState;
-
-            uint16_t temp = VIS_Code;
-            if (THRESHOLD(in.freq, 1300, FREQ_TH)) bit = 0;
-            else if (THRESHOLD(in.freq, 1100, FREQ_TH)) bit = 1; // Determine parity bit
-            else {
-                bit = 0;
-                printf("Parity bit in unknown state");
-            }
-            for (int i = 0; i < 7; i++) {
-                codeSum += (temp & 1);  // Get LSB
-                temp >>= 1;             // Shift right 1 bit
-            }
-            if ((codeSum + bit) % 2) h_nextState = TRANS_ERROR; // Detect parity mismatch
-            break;
-
-        case(STOP_BIT):
-            if (THRESHOLD(in.freq, h_stop.freq, FREQ_TH) && THRESHOLD(in.diff_time, h_stop.diff_time, TIME_DIFF_MS_TH)) return VIS_Code; // If transmission is successful, return the received code
-            else if (!THRESHOLD(in.freq, h_stop.freq, FREQ_TH) || in.diff_time > (h_sync2.diff_time + TIME_DIFF_MS_TH)) h_nextState = TRANS_ERROR;
-            else h_nextState = h_nextState;
-            break;
-
-        case (TRANS_ERROR):
-            h_nextState = SYNC1;
-            printf("\nTransmission Error");
-            break;
-
-        default:
-            h_nextState = SYNC1;
             break;
     }
 

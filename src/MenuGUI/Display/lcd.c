@@ -9,26 +9,24 @@
 #include <stdint.h>
 #include "lcd.h"
 
+#include "TFT_display.h"
+
 void nano_wait(int t);
 
 lcd_dev_t lcddev;
 
 spi_inst_t *SPI = spi0; // Use SPI1 for the LCD
 
-#define CS_NUM  21
-#define DC_NUM 24
-#define RESET_NUM 25
+#define CS_BIT  (1 << PIN_CS)
+#define RESET_BIT (1 << PIN_nRESET)
+#define DC_BIT (1 << PIN_DC)
 
-#define CS_BIT  (1<<CS_NUM)
-#define RESET_BIT (1<<RESET_NUM)
-#define DC_BIT (1<<DC_NUM)
-
-#define CS_HIGH  do { gpio_put(CS_NUM, 1); } while(0)
-#define CS_LOW   do { gpio_put(CS_NUM, 0); } while(0)
-#define RESET_HIGH do { gpio_put(RESET_NUM, 1); } while(0)
-#define RESET_LOW  do { gpio_put(RESET_NUM, 0); } while(0)
-#define DC_HIGH do { gpio_put(DC_NUM, 1); } while(0)
-#define DC_LOW  do { gpio_put(DC_NUM, 0); } while(0)
+#define CS_HIGH  do { gpio_put(PIN_CS, 1); } while(0)
+#define CS_LOW   do { gpio_put(PIN_CS, 0); } while(0)
+#define RESET_HIGH do { gpio_put(PIN_nRESET, 1); } while(0)
+#define RESET_LOW  do { gpio_put(PIN_nRESET, 0); } while(0)
+#define DC_HIGH do { gpio_put(PIN_DC, 1); } while(0)
+#define DC_LOW  do { gpio_put(PIN_DC, 0); } while(0)
 
 // Set the CS pin low if val is non-zero.
 // Note that when CS is being set high again, wait on SPI to not be busy.

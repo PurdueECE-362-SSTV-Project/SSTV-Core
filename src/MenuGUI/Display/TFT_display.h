@@ -18,10 +18,10 @@ void init_spi_lcd(void);
 // Testing Funtions
 void TFT_rickRoll (void);
 
-#define PIN_SDI    23
-#define PIN_CS     21
-#define PIN_SCK    22
-#define PIN_DC     24
-#define PIN_nRESET 25
+#define PIN_SDI    19
+#define PIN_CS     17
+#define PIN_SCK    18
+#define PIN_DC     16
+#define PIN_nRESET 20
 
 #endif

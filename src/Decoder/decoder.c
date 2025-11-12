@@ -1,9 +1,5 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "hardware/xosc.h"
-#include "pico/multicore.h"
-#include "../lib/kissfft-master/kiss_fft.h"
-#include "../lib/kissfft-master/kiss_fftr.h"
 
 #include "decoder.h"
 
@@ -48,84 +44,23 @@ int header_fsm(Decoder_FSM_Val in, uint16_t freq) {
     // Else - go to IDLE
     swtich(h_currState) {
         case (SYNC1): 
-                // If not within threshold - freq changed to next_state freq
-                if (!THRESH_FREQ(freq, FSM_exp_curr.freq))
-                    // Diff_time is within Bounds - Move to next_state
-                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
-                        h_nextState = SYNC_HOLD;
-
-                    // If Time if Out of Bounds - go to IDLE (error)
-                    else 
-                        h_nextState = IDLE;
-
-                // If stays in state longer than it's supposed to
-                else if (TIME_OOB(FSM_exp_curr.diff_time))
-                    h_nextState = IDLE;
+                nextState_thresh(freq, SYNC_HOLD, IDLE);
             break;
 
         case (SYNC_HOLD): 
-                // If not within threshold - freq changed to next_state freq
-                if (!THRESH_FREQ(freq, FSM_exp_curr.freq))
-                    // Diff_time is within Bounds - Move to next_state
-                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
-                        h_nextState = SYNC2;
-
-                    // If Time if Out of Bounds - go to IDLE (error)
-                    else 
-                        h_nextState = IDLE;
-
-                // If stays in state longer than it's supposed to
-                else if (TIME_OOB(FSM_exp_curr.diff_time))
-                    h_nextState = IDLE;
+                nextState_thresh(freq, SYNC2, IDLE);
             break;
 
         case (SYNC2): 
-                // If not within threshold - freq changed to next_state freq
-                if (!THRESH_FREQ(freq, FSM_exp_curr.freq))
-                    // Diff_time is within Bounds - Move to next_state
-                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
-                        h_nextState = START_BIT;
-
-                    // If Time if Out of Bounds - go to IDLE (error)
-                    else 
-                        h_nextState = IDLE;
-
-                // If stays in state longer than it's supposed to
-                else if (TIME_OOB(FSM_exp_curr.diff_time))
-                    h_nextState = IDLE;
+                nextState_thresh(freq, START_BIT, IDLE);
             break;
 
         case (START_BIT): 
-                // If not within threshold - freq changed to next_state freq
-                if (!BOUND_FREQ(freq, FSM_exp_curr.freq, FSM_exp_curr.freq_lb))
-                    // Diff_time is within Bounds - Move to next_state
-                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
-                        h_nextState = CODE;
-
-                    // If Time if Out of Bounds - go to IDLE (error)
-                    else 
-                        h_nextState = IDLE;
-
-                // If stays in state longer than it's supposed to
-                else if (TIME_OOB(FSM_exp_curr.diff_time))
-                    h_nextState = IDLE;
+                nextState_bound(freq, CODE, IDLE);
             break;
 
         case (CODE): 
-                // If not within threshold - freq changed to next_state freq
-                if (!BOUND_FREQ(freq, FSM_exp_curr.freq, FSM_exp_curr.freq_lb))
-                    // Diff_time is within Bounds - Move to next_state
-                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
-                        h_nextState = PARITY_BIT;
-
-                    // If Time if Out of Bounds - go to IDLE (error)
-                    else 
-                        h_nextState = IDLE;
-
-                // If stays in state longer than it's supposed to
-                else if (TIME_OOB(FSM_exp_curr.diff_time))
-                    h_nextState = IDLE;
-
+                nextState_bound(freq, PARITY_BIT, IDLE);
 
                 // VIS CODE writing //
                 if      (THRESH_FREQ(freq, 1300)) bit = 0; 
@@ -138,19 +73,7 @@ int header_fsm(Decoder_FSM_Val in, uint16_t freq) {
             break;
 
         case (PARITY_BIT): 
-                // If not within threshold - freq changed to next_state freq
-                if (!BOUND_FREQ(freq, FSM_exp_curr.freq, FSM_exp_curr.freq_lb))
-                    // Diff_time is within Bounds - Move to next_state
-                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
-                        h_nextState = STOP_BIT;
-
-                    // If Time if Out of Bounds - go to IDLE (error)
-                    else 
-                        h_nextState = IDLE;
-
-                // If stays in state longer than it's supposed to
-                else if (TIME_OOB(FSM_exp_curr.diff_time))
-                    h_nextState = IDLE;
+                nextState_thresh(freq, STOP_BIT, IDLE);
 
                 // Calculate Parity // 
                 uint16_t temp = VIS_Code;
@@ -168,19 +91,7 @@ int header_fsm(Decoder_FSM_Val in, uint16_t freq) {
             break;
 
         case (STOP_BIT): 
-                // If not within threshold - freq changed to next_state freq
-                if (!THRESH_FREQ(freq, FSM_exp_curr.freq))
-                    // Diff_time is within Bounds - Move to next_state
-                    if (THRESH_TIME(FSM_exp_curr.diff_time)) 
-                        h_nextState = DECODE_MODE;
-
-                    // If Time if Out of Bounds - go to IDLE (error)
-                    else 
-                        h_nextState = IDLE;
-
-                // If stays in state longer than it's supposed to
-                else if (TIME_OOB(FSM_exp_curr.diff_time))
-                    h_nextState = IDLE;
+                nextState_thresh(freq, DECODE_MODE, IDLE);
             break;
 
         case (DECODE_MODE): 
@@ -214,7 +125,14 @@ void update_time() {
     // if same state - inc time     (and it's not in idle)
     if ((h_nextState == h_currState) && (h_nextState != IDLE)) time_incrementer(1);
     // Else reset time increment
-    else                                                        time_incrementer(0);
+    else                                                       time_incrementer(0);
+}
+
+void time_incrementer(bool inc_time) {
+    if (inc_time) diffrential_time += 1.0 / SFREQ;      // Increase by sampling period
+    else diffrential_time = 0;                          // if 0 then reset
+
+    return;
 }
 
 void update_exp() {
@@ -261,11 +179,36 @@ void update_exp() {
     }
 }
 
-void time_incrementer(bool inc_time) {
-    if (inc_time) diffrential_time += 1.0 / SFREQ;      // Increase by sampling period
-    else diffrential_time = 0;                          // if 0 then reset
+void nextState_thresh (uint16_t freq, Header_State move_into, Header_State move_failed) {
+    // If not within threshold - freq changed to next_state freq
+    if (!THRESH_FREQ(freq, FSM_exp_curr.freq))
+        // Diff_time is within Bounds - Move to next_state
+        if (THRESH_TIME(FSM_exp_curr.diff_time)) 
+            h_nextState = move_into;
 
-    return;
+        // If Time if Out of Bounds - go to IDLE (error)
+        else 
+            h_nextState = move_failed;
+
+    // If stays in state longer than it's supposed to
+    else if (TIME_OOB(FSM_exp_curr.diff_time))
+        h_nextState = move_failed;
+}
+
+void nextState_bound (uint16_t freq, Header_State move_into, Header_State move_failed) {
+    // If not within bound - freq changed to next_state freq
+    if (!BOUND_FREQ(freq, FSM_exp_curr.freq, FSM_exp_curr.freq_lb))
+        // Diff_time is within Bounds - Move to next_state
+        if (THRESH_TIME(FSM_exp_curr.diff_time)) 
+            h_nextState = move_into;
+
+        // If Time if Out of Bounds - go to IDLE (error)
+        else 
+            h_nextState = move_failed;
+
+    // If stays in state longer than it's supposed to
+    else if (TIME_OOB(FSM_exp_curr.diff_time))
+        h_nextState = move_failed;
 }
 
 sstv_mode_t initializeMode(int code) {

@@ -4,10 +4,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "pico/stdlib.h"
-#include "hardware/xosc.h"
-#include "pico/multicore.h"
-#include "../lib/kissfft-master/kiss_fft.h"
-#include "../lib/kissfft-master/kiss_fftr.h"
 
 // Include FFT Global Variables
 #include "FFT/fft_functions.h"
@@ -69,7 +65,7 @@ typedef struct {
  } Decoder_FSM_Val;
 
  // Time Keeping
-#define TIMER1_ALARM0 ((timer1_hw->timerawh) << 32 | (timer1_hw->timerawl))
+//#define TIMER1_ALARM0 ((timer1_hw->timerawh) << 32 | (timer1_hw->timerawl))
 uint16_t diffrential_time = 0;
 
 // Threshold values
@@ -89,6 +85,6 @@ uint16_t diffrential_time = 0;
 #define BOUND_TIME(ref_val, upper, lower)     BOUND(ref_val, upper, lower, TIME_DIFF_MS_TH)
 
 // Out of Bound Logic
-#define TIME_OOB(target)                OUT_OF_BOUND(diffrential_time, target, TIME_DIFF_MS_TH)
+#define TIME_OOB(target)    OUT_OF_BOUND(diffrential_time, target, TIME_DIFF_MS_TH)
 
 #endif

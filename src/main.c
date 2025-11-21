@@ -22,8 +22,16 @@ extern volatile bool dma_flag;
 extern volatile bool ping_active;
 extern volatile uint16_t ping_buf[NFFT];
 extern volatile uint16_t pong_buf[NFFT];
+
 extern volatile bool rotary_isr_flag;
 extern volatile bool rotary_switch_flag;
+extern volatile bool frontbutton1_flag;
+extern volatile bool frontbutton2_flag;
+extern volatile bool frontbutton3_flag;
+
+extern volatile uint16_t frequency10x;
+extern volatile uint16_t volume_level;
+extern volatile uint16_t freq_flag;
 
 #define DC_OFFSET 2048
 
@@ -33,7 +41,6 @@ void core1_main() {
     sleep_ms(10);
     rf_init_i2c();
     rf_init();
-    rf_tune(911);           //tune to 91.1 MHz
     uint16_t regs[16];
 
     rf_read_register(regs);
@@ -53,8 +60,8 @@ void core1_main() {
                 PIN_SCK,		//SCK
                 PIN_SDI,		//SDI(MOSI)
                 PIN_nRESET,  	//RESET
-                PIN_DC,			//DC/RS 
-                PIN_LED,     
+                PIN_DC,			//DC/RS
+                PIN_LED,
                 true);
 
     sleep_ms(500);      // Wait for stdio to initialize
@@ -64,14 +71,25 @@ void core1_main() {
     for (;;) {
         if(rotary_isr_flag){
             rotary_isr_flag = false;
-            rotary_logic();
+            rotary_logic(freq_flag);
         }
         else if(rotary_switch_flag){
-            //run_fft_on_dma();
+            //update frequency and volume
             rotary_switch_flag = false;
-            rotary_switch_logic();
+            rotary_switch_logic(frequency10x, volume_level);
         }
-
+        else if (frontbutton1_flag){
+            frontbutton1_flag = false;
+            printf("Freq_flag = %d\n", freq_flag);
+        }
+        else if (frontbutton2_flag){
+            frontbutton2_flag = false;
+            printf("Front Button 2 Pressed\n");
+        }
+        else if (frontbutton3_flag){
+            frontbutton3_flag = false;
+            printf("Front Button 3 Pressed\n");
+        }
         // Constantly Write to the Image Buffer
         ILI9341_writeImageBuffer();
     }
@@ -94,21 +112,21 @@ int main()
     filter_init(&ssb_filter);
 
     // Write Test Colours on Screen
-    ili9341_test(); 
+    ili9341_test();
 
     sleep_ms(3000);
 
-    //ili9341_clear();  
+    //ili9341_clear();
     // OR
-	ILI9341_setScreenColour(TFT_BLACK);         
+	ILI9341_setScreenColour(TFT_BLACK);
 
     // Draw A Small Rectangle
     ili9341_drawRect(120, 100, 20, 20, TFT_BLUE);
     sleep_ms(100);
 
     {
-        uint16_t color = ili9341_RGBto16bit(0xE0, 0x30, 0x3F); 
-        ili9341_putStr("Hello", 20, 20, color, TFT_WHEAT);     
+        uint16_t color = ili9341_RGBto16bit(0xE0, 0x30, 0x3F);
+        ili9341_putStr("Hello", 20, 20, color, TFT_WHEAT);
     }
 
     uint16_t counter = 0;

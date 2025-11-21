@@ -22,6 +22,7 @@ void rf_tune(uint16_t);
 void rf_write_register(uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t);
 void rf_read_register(uint16_t *);
 void rf_print_registers(uint16_t *);
+void rf_set_volume(uint16_t);
 
 // Controls //
 #define ROTARY_CLK_PIN (uint) 34
@@ -52,8 +53,8 @@ void init_rotary_encoder();
 void rotary_isr();
 void rotary_sw_isr();
 
-void rotary_logic();
-void rotary_switch_logic();
+void rotary_logic(uint16_t);
+void rotary_switch_logic(u_int16_t, uint16_t);
 unsigned char rotary_state();
 
 #endif

@@ -110,9 +110,10 @@ void rf_init() {
 
     reg02 |= 0x4001;
     reg04 |= 1 << 12;
-    reg05 |= (13 & 0x0F);  // Set volume to 15
+    reg05 |= (15 & 0x0F);  // Set volume to 15
     rf_write_register(reg02, reg03, reg04, reg05, reg06, reg07);
     sleep_ms(110);
+    rf_tune(911);
 }
 
 void rf_write_register(uint16_t reg02, uint16_t reg03, uint16_t reg04,
@@ -230,4 +231,18 @@ void rf_tune(uint16_t frequency_10x) {
     regs[0x03] &= ~0x8000;  // TUNE = 0, keep channel bits
     rf_write_register(regs[0x02], regs[0x03], regs[0x04],
                      regs[0x05], regs[0x06], regs[0x07]);
+}
+
+void rf_set_volume(uint16_t volume) {
+    uint16_t regs[16];
+
+    rf_read_register(regs); //reads current register values into regs
+
+    // Volume is in lower 4 bits of reg 0x05
+    regs[0x05] = (regs[0x05] & 0xFFF0) | (volume & 0x0F);
+
+    rf_write_register(regs[0x02], regs[0x03], regs[0x04],
+                     regs[0x05], regs[0x06], regs[0x07]);
+
+    printf("Volume set to: %u\n", volume);
 }

@@ -49,10 +49,6 @@ typedef struct {
     DECODE_MODE
  } Header_State;
 
-  typedef enum {
-    C_IDLE, COLOUR, SYNC
- } Colour_State;
-
   typedef struct {
     Header_State State;
     uint16_t freq;      // Frequency (upper bound if applicable)
@@ -61,10 +57,9 @@ typedef struct {
  } Decoder_FSM_Val;
 
    typedef struct {
-    Colour_State State;
     uint16_t freq;      // Frequency (upper bound if applicable)
     uint16_t freq_lb;   // Frequency lower bound
- } Colour_FSM_Val;
+ } Colour_Decode_Val;
 
 // Funtion Definations  //
 // Init
@@ -72,15 +67,10 @@ sstv_mode_t initVISMode(uint8_t);
 
 int header_fsm(uint16_t);
 void decoder(int16_t);
-void colour_decode_fsm(uint16_t);
-
-// Time
-void time_incrementer(bool);
-void update_time();
+void colour_decode(uint16_t);
 
 // Expected Val
 void update_decoder_exp();
-void update_colour_decoder_exp();
 
 // Print a binary number
 void print_binary(uint64_t, int);
@@ -96,8 +86,8 @@ void nextState_intoBoundRange (uint16_t, Decoder_FSM_Val, Decoder_FSM_Val);
 void nextState_boundRange (uint16_t, Decoder_FSM_Val, Decoder_FSM_Val);
 
 // Colour Decoding Logi
-void nextColourState_toBound (uint16_t, Colour_FSM_Val, Colour_FSM_Val);
-void nextColourState_toThresh (uint16_t, Colour_FSM_Val, Colour_FSM_Val);
+void nextColourState_toBound (uint16_t, Colour_Decode_Val, Colour_Decode_Val);
+void nextColourState_toThresh (uint16_t, Colour_Decode_Val, Colour_Decode_Val);
 
 // Threshold values
 #define FREQ_TH 75 // +/- Hz

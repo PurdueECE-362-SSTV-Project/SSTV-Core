@@ -18,6 +18,7 @@ extern volatile uint16_t* imageBuffer;        // Framebuffer: PIX_WIDTH x PIX_HE
 
 // Initialize framebuffer allocation
 void init_imageBuffer(void);
+uint16_t reverse_bits_16_lut(uint16_t x);
 
 // TFT Pin Values
 #define PIN_SDI     19

@@ -121,7 +121,7 @@ int main()
 	ILI9341_setScreenColour(TFT_BLACK);
 
     // Draw A Small Rectangle
-    ili9341_drawRect(120, 100, 20, 20, TFT_BLUE);
+    ili9341_drawRect(120, 100, 20, 20, TFT_PINK);
     sleep_ms(100);
 
     {

@@ -29,9 +29,6 @@ static uint16_t s_height = 320;
 // imageBuffer
 volatile uint16_t* imageBuffer = NULL;
 
-// image buffer 2D reference
-#define PIX(x,y) ((size_t)(y) * (size_t)PIX_WIDTH + (size_t)(x))
-
 // initialize the imageBuffer
 void init_imageBuffer(void) {
     imageBuffer = (volatile uint16_t*) calloc(PIX_WIDTH * PIX_HEIGHT, sizeof(uint16_t));

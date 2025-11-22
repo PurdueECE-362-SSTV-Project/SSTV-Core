@@ -13,6 +13,9 @@
 // Public globals mirroring original externs
 extern volatile uint16_t* imageBuffer;        // Framebuffer: PIX_WIDTH x PIX_HEIGHT, RGB565 big-endian
 
+// image buffer 2D reference
+#define PIX(x,y) ((size_t)(y) * (size_t)PIX_WIDTH + (size_t)(x))
+
 // Initialize framebuffer allocation
 void init_imageBuffer(void);
 

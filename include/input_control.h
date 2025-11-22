@@ -47,14 +47,12 @@ void rf_set_volume(uint16_t);
 #define R_CW_BEGIN_M 0x4
 #define R_CCW_BEGIN_M 0x5
 
-void init_rotary_irq();
 void init_rotary_encoder();
-
-void rotary_isr();
-void rotary_sw_isr();
-
-void rotary_logic(uint16_t);
-void rotary_switch_logic(u_int16_t, uint16_t);
 unsigned char rotary_state();
+void rotary_logic(uint16_t);
+void set_volume(int16_t);
+void rotary_switch_logic(uint16_t, uint16_t);
+void rotary_isr();
+void init_rotary_irq();
 
 #endif

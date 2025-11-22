@@ -1,11 +1,8 @@
 #include <stdio.h>
-
-// Pico Libraries
 #include "pico/stdlib.h"
 
-// Custom
 #include "decoder.h"
-#include "Ili9341.h"
+#include "custom_funtions.h"
 
 // ASYNC FSM Vars
 static const Decoder_FSM_Val h_idle      = {.State  = IDLE,        .freq = 0,      .freq_lb = 0,    .diff_time = 0};
@@ -13,13 +10,13 @@ static const Decoder_FSM_Val h_sync1     = {.State  = SYNC1,       .freq = 1900,
 static const Decoder_FSM_Val h_hold      = {.State  = SYNC_HOLD,   .freq = 1200,   .freq_lb = 0,    .diff_time = 10};
 static const Decoder_FSM_Val h_sync2     = {.State  = SYNC2,       .freq = 1900,   .freq_lb = 0,    .diff_time = 300};
 static const Decoder_FSM_Val h_start     = {.State  = START_BIT,   .freq = 1200,   .freq_lb = 0,    .diff_time = 30};
-static const Decoder_FSM_Val h_code      = {.State  = CODE,        .freq = 1300,   .freq_lb = 1100,    .diff_time = 240};
+static const Decoder_FSM_Val h_code      = {.State  = CODE,        .freq = 1300,   .freq_lb = 1100, .diff_time = 240};
 static const Decoder_FSM_Val h_stop      = {.State  = STOP_BIT,    .freq = 1200,   .freq_lb = 0,    .diff_time = 30};
-static const Decoder_FSM_Val h_decode    = {.State  = DECODE_MODE, .freq = 2300,   .freq_lb = 1200,    .diff_time = 300};
+static const Decoder_FSM_Val h_decode    = {.State  = DECODE_MODE, .freq = 2300,   .freq_lb = 1200, .diff_time = 300};     // Go into decoding mode
 
-// Colour Vars
-static const Colour_Decode_Val c_line  = {.freq = 2300,    .freq_lb = 1500};
-static const Colour_Decode_Val c_sync  = {.freq = 1500,    .freq_lb = 1200};
+// Colour FSM Vars
+static const Colour_Decoder_Val c_line  = {.State = COLOUR, .freq = 2300,    .freq_lb = 1500 + (FREQ_TH >> 3)};
+static const Colour_Decoder_Val c_sync  = {.State = SYNC,   .freq = 1500 - (FREQ_TH << 1),    .freq_lb = 1200};
 
 // SSTV MODE Vars
 static const sstv_mode_t Robot36     =  {.decMode = ROBOT_36,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 36,     .lineTime = 135,     .lineS = 10.5,  .colorS = 4.5, .format = 1};
@@ -31,34 +28,31 @@ static const sstv_mode_t PD50        =  {.decMode = PD_50,       .color = YCRCB,
 static const sstv_mode_t PD90        =  {.decMode = PD_90,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 90,     .lineTime = 340.48,  .lineS = 20.0,  .colorS = 0.0, .format = 0};
 static const sstv_mode_t NULL_mode   =  {.decMode = NULL_type,   .color = GBR,   .row = 0,       .col = 0,       .tranTime = 0,      .lineTime = 0,       .lineS = 0,     .colorS = 0,   .format = 0};
 
-#define VIS_BITS_TOTAL   8        // Number of bits in a VIS code
-#define SAMPLES_PER_BIT  450       // Number of samples per bit (~30ms)  
-
-// For initing Vars
-static bool vars_init = false;
+// Init vars flag
+static bool init_vars = true;
 
 // VIS CODE Flags
+#define VIS_BITS_TOTAL   8                        // Number of bits in a VIS code
+#define SAMPLES_PER_BIT  (uint16_t) ((SFREQ / 1000) * 30)      // Number of samples per bit (~30ms)  
+
 static bool new_vis_code = true;
-static uint8_t VIS_Code   = 0;            // Stores the VIS Code   
+static uint8_t VIS_Code   = 0;            // Stores the VIS Code 
 
 static uint64_t sample_count = 0;
 static uint32_t VIS_CODE_upper = 0;
 static uint32_t VIS_CODE_lower = 0;
+
 static sstv_mode_t     curr_VIS_mode      = NULL_mode;
 
-// Decoding Vars
-static uint8_t curr_y = 0;
-static uint8_t curr_x = 0;
-static uint8_t curr_sample = 0;
-static bool y_updated = 0;
+// Diffrential time
+volatile float diffrential_time = 0;
 
 // Global FSM Holder
-Decoder_FSM_Val h_prevState     = h_idle;        // PrevState Freq
-Decoder_FSM_Val h_currState     = h_idle;        // CurrState Freq
-Decoder_FSM_Val h_nextState     = h_idle;        // NextState Freq
-Decoder_FSM_Val h_nextState_exp = h_idle;        // NextState exp Freq
+static Decoder_FSM_Val h_prevState     = h_idle;        // PrevState Freq
+static Decoder_FSM_Val h_currState     = h_idle;        // CurrState Freq
+static Decoder_FSM_Val h_nextState     = h_idle;        // NextState Freq
+static Decoder_FSM_Val h_nextState_exp = h_idle;        // NextState exp Freq
 
-// History Bits
 static uint32_t in_bounds_history  = 0;
 static uint64_t in_bounds_time_history = 0;
 
@@ -67,17 +61,21 @@ static uint64_t in_bounds_time_history = 0;
 #define GET_MODE_HEIGHT     curr_VIS_mode.col
 #define GET_LINE_TIME       curr_VIS_mode.lineTime
 
-// Printing Logic (AUX)
-static uint16_t print_count = 0;
-static uint16_t print_colour = 0;
-static uint16_t print_sync = 0;
+static bool print_colour = true;
+static bool print_sync = true;
+static uint16_t colour_count = 0;
+static uint16_t sync_count = 0;
 
-// Decoder FSM
+//
+static uint16_t colour_history = 0;
+static uint16_t sync_history = 0;
+static bool in_colour_flag = false;
+static bool in_sync_flag = false;
+
 void decoder(int16_t in_buff) {
     header_fsm(in_buff);
 }
 
-// Initializing Different Modes
 sstv_mode_t initVISMode(uint8_t code) {
     if      (code == (uint8_t) ROBOT_36)  return Robot36;
     else if (code == (uint8_t) ROBOT_72)  return Robot72;
@@ -115,28 +113,33 @@ int header_fsm(uint16_t freq) {
             break;
 
         case (SYNC2):
-                nextState_thresh(freq, h_start, h_idle);
+                init_vars = true;
 
-                // Get ready to init vars
-                vars_init = false;
+                nextState_thresh(freq, h_start, h_idle);
             break;
 
         case (START_BIT):
-                if (!vars_init) {
-                    // init all vairs for VIS code reading
+                // To avoid wasting computation
+                if (init_vars) {
+                    init_vars = false;          // Dont init more
+
+                    // VIS Code Vars
                     sample_count = 0;
                     VIS_CODE_upper = 0;
                     VIS_CODE_lower = 0;
+
                     new_vis_code = true;
 
-                    // Init Decoding Vars
-                    curr_y = 0;
-                    curr_x = 0;
-                    curr_sample = 0;
-                    y_updated = 0;
+                    // Colour Decoding Vars
+                    print_colour = true;
+                    print_sync = true;
+                    colour_count = 0;
+                    sync_count = 0;
 
-                    // Vars inited
-                    vars_init = true;
+                    colour_history = 0;
+                    sync_history = 0;
+                    in_colour_flag = false;
+                    in_sync_flag = true;
                 }
 
                 nextState_intoBound(freq, h_code, h_idle);
@@ -175,12 +178,15 @@ int header_fsm(uint16_t freq) {
                 //print_binary(VIS_Code, 8);
                 curr_VIS_mode = initVISMode(VIS_Code);
 
+                // To count samples for decode mode
+                //sample_count = 0;
+
                 nextState_intoBoundRange(freq, h_decode, h_idle);
             break;
 
         case (DECODE_MODE):
                 // Colour Decoding FSM
-                colour_decode(freq);
+                colour_decoder(freq);
 
                 // Move out of decode mode
                 nextState_boundRange(freq, h_idle, h_idle);
@@ -197,52 +203,53 @@ int header_fsm(uint16_t freq) {
     return 0;
 }
 
-// Print Header from FSM
-void print_header_fsm(uint16_t freq) {
-    //only print when current state differs from prev state
-    if(h_prevState.State != h_currState.State) {
-        printf("sample freq: %d, Current State: ", freq);
-        switch (h_currState.State) {
-            case IDLE:
-                printf("IDLE\n");
-                break;
+void colour_decoder(uint16_t freq) {
+    // It'll be in either colour or sync
+    colour_history  = (colour_history << 1) | BOUND_RANGE_FREQ(freq, c_line.freq, c_line.freq_lb);
 
-            case SYNC1:
-                printf("SYNC1\n");
-                break;
+    // Entered Colour - not update flag everytime
+    if (!in_colour_flag && (colour_history == 0xFFFF)) {
+        in_colour_flag = true;
+        in_sync_flag = false;
+    }
 
-            case SYNC_HOLD:
-                printf("SYNC_HOLD\n");
-                break;
+    // Entered Sync - not update sync everytime
+    else if (!in_sync_flag && (colour_history == 0x0000)) {
+        in_colour_flag = false;
+        in_sync_flag = true;
+    }
 
-            case SYNC2:
-                printf("SYNC2\n");
-                break;
+    // Decoding Logic 
+    if (in_colour_flag) {
+        if (print_sync) {
+            printf("Sync #%d\n", sync_count);
 
-            case START_BIT:
-                printf("START_BIT\n");
-                break;
+            // Reset Sync Count
+            sync_count = 0;
 
-            case CODE:
-                printf("CODE\n");
-                break;
-
-            case PARITY_BIT:
-                printf("PARITY_BIT\n");
-                break;
-
-            case STOP_BIT:
-                printf("STOP_BIT\n");
-                break;
-
-            case DECODE_MODE:
-                printf("DECODE_MODE\n");
-                break;
-
-            default:
-                //printf("IDLE\n");
-                break;
+            // Print new set of values
+            print_sync = false;
+            print_colour = true;
         }
+
+        // New sample
+        colour_count++;
+    }
+    // Sync mode
+    else {
+        if (print_colour) {
+            printf("Colour #%d\n", colour_count);
+
+            // Reset Sync Count
+            colour_count = 0;
+
+            // Print new set of values
+            print_sync = true;
+            print_colour = false;
+        }
+
+        // New sample
+        sync_count++;
     }
 }
 
@@ -294,25 +301,52 @@ void update_decoder_exp() {
     }
 }
 
-void colour_decode(uint16_t freq) {
-    if BOUND_RANGE_FREQ(freq, c_line.freq, c_line.freq_lb) {
-        y_updated = 0;
-        curr_sample++;           // Update x
+void print_header_fsm(uint16_t freq) {
+    //only print when current state differs from prev state
+    if(h_prevState.State != h_currState.State) {
+        printf("sample freq: %d, Current State: ", freq);
+        switch (h_currState.State) {
+            case IDLE:
+                printf("IDLE\n");
+                break;
 
-        // Do colour Logic
-        // PIX(curr_x, curr_y) = 
-    }
-    else if BOUND_RANGE_FREQ(freq, c_sync.freq, c_sync.freq_lb) {
-        if (!y_updated) {
-            curr_y++;
-            curr_sample = 0;
+            case SYNC1:
+                printf("SYNC1\n");
+                break;
 
-            // Don't reupdate
-            y_updated = 1;
+            case SYNC_HOLD:
+                printf("SYNC_HOLD\n");
+                break;
+
+            case SYNC2:
+                printf("SYNC2\n");
+                break;
+
+            case START_BIT:
+                printf("START_BIT\n");
+                break;
+
+            case CODE:
+                printf("CODE\n");
+                break;
+
+            case PARITY_BIT:
+                printf("PARITY_BIT\n");
+                break;
+
+            case STOP_BIT:
+                printf("STOP_BIT\n");
+                break;
+
+            case DECODE_MODE:
+                printf("DECODE_MODE\n");
+                break;
+
+            default:
+                //printf("IDLE\n");
+                break;
         }
-        // Sync Logic
     }
-    // Else out of bound
 }
 
 void nextState_thresh (uint16_t freq, Decoder_FSM_Val move_into, Decoder_FSM_Val move_failed) {

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 
+#include "Ili9341.h"
 #include "decoder.h"
 #include "custom_funtions.h"
 
@@ -16,17 +17,17 @@ static const Decoder_FSM_Val h_decode    = {.State  = DECODE_MODE, .freq = 2300,
 
 // Colour FSM Vars
 static const Colour_Decoder_Val c_line  = {.State = COLOUR, .freq = 2300,    .freq_lb = 1500 + (FREQ_TH >> 3)};
-static const Colour_Decoder_Val c_sync  = {.State = SYNC,   .freq = 1500 - (FREQ_TH << 1),    .freq_lb = 1200};
+//static const Colour_Decoder_Val c_sync  = {.State = SYNC,   .freq = 1500 - (FREQ_TH << 1),    .freq_lb = 1200};
 
 // SSTV MODE Vars
-static const sstv_mode_t Robot36     =  {.decMode = ROBOT_36,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 36,     .lineTime = 135,     .lineS = 10.5,  .colorS = 4.5, .format = 1};
-static const sstv_mode_t Robot72     =  {.decMode = ROBOT_72,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 72,     .lineTime = 276,     .lineS = 12.0,  .colorS = 6.0, .format = 2};
-static const sstv_mode_t Martin1     =  {.decMode = MARTIN_1,    .color = GBR,   .row = 320,     .col = 256,     .tranTime = 114,    .lineTime = 439.296, .lineS = 4.862, .colorS = 0.0, .format = 0};
-static const sstv_mode_t Martin2     =  {.decMode = MARTIN_2,    .color = GBR,   .row = 256,     .col = 160,     .tranTime = 58,     .lineTime = 219.648, .lineS = 4.862, .colorS = 0.0, .format = 0};
-static const sstv_mode_t Scottie2    =  {.decMode = SCOTTIE_2,   .color = GBR,   .row = 256,     .col = 160,     .tranTime = 71,     .lineTime = 264.192, .lineS = 9.0,   .colorS = 0.0, .format = 0};
-static const sstv_mode_t PD50        =  {.decMode = PD_50,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 50,     .lineTime = 183.04,  .lineS = 20.0,  .colorS = 0.0, .format = 0};
-static const sstv_mode_t PD90        =  {.decMode = PD_90,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 90,     .lineTime = 340.48,  .lineS = 20.0,  .colorS = 0.0, .format = 0};
-static const sstv_mode_t NULL_mode   =  {.decMode = NULL_type,   .color = GBR,   .row = 0,       .col = 0,       .tranTime = 0,      .lineTime = 0,       .lineS = 0,     .colorS = 0,   .format = 0};
+static const sstv_mode_t Robot36     =  {.decMode = ROBOT_36,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 36,     .lineTime = 45,            .lineS = 10.5,  .colorS = 4.5, .format = 1};
+static const sstv_mode_t Robot72     =  {.decMode = ROBOT_72,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 72,     .lineTime = 92,            .lineS = 12.0,  .colorS = 6.0, .format = 2};
+static const sstv_mode_t Martin1     =  {.decMode = MARTIN_1,    .color = GBR,   .row = 320,     .col = 256,     .tranTime = 114,    .lineTime = 146.432,       .lineS = 4.862, .colorS = 0.0, .format = 0};
+static const sstv_mode_t Martin2     =  {.decMode = MARTIN_2,    .color = GBR,   .row = 256,     .col = 160,     .tranTime = 58,     .lineTime = 73.216,        .lineS = 4.862, .colorS = 0.0, .format = 0};
+static const sstv_mode_t Scottie2    =  {.decMode = SCOTTIE_2,   .color = GBR,   .row = 256,     .col = 160,     .tranTime = 71,     .lineTime = 88.064,        .lineS = 9.0,   .colorS = 0.0, .format = 0};
+static const sstv_mode_t PD50        =  {.decMode = PD_50,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 50,     .lineTime = 61.0133,       .lineS = 20.0,  .colorS = 0.0, .format = 0};
+static const sstv_mode_t PD90        =  {.decMode = PD_90,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 90,     .lineTime = 113.493,       .lineS = 20.0,  .colorS = 0.0, .format = 0};
+static const sstv_mode_t NULL_mode   =  {.decMode = NULL_type,   .color = GBR,   .row = 0,       .col = 0,       .tranTime = 0,      .lineTime = 0,             .lineS = 0,     .colorS = 0,   .format = 0};
 
 // Init vars flag
 static bool init_vars = true;
@@ -42,7 +43,7 @@ static uint64_t sample_count = 0;
 static uint32_t VIS_CODE_upper = 0;
 static uint32_t VIS_CODE_lower = 0;
 
-static sstv_mode_t     curr_VIS_mode      = NULL_mode;
+static sstv_mode_t curr_VIS_mode = NULL_mode;
 
 // Diffrential time
 volatile float diffrential_time = 0;
@@ -57,20 +58,35 @@ static uint32_t in_bounds_history  = 0;
 static uint64_t in_bounds_time_history = 0;
 
 // Store VIS Mode and Colour Decoding 
+#define COLOUR_HISTORY_NUM  16
+#define COLOUR_HISTORY      0xFFFF
+
 #define GET_MODE_WIDTH      curr_VIS_mode.row
 #define GET_MODE_HEIGHT     curr_VIS_mode.col
-#define GET_LINE_TIME       curr_VIS_mode.lineTime
+#define GET_COL_TIME        curr_VIS_mode.lineTime / 1000.0
+static bool alt_sample = 0;
 
-static bool print_colour = true;
-static bool print_sync = true;
+//#define SAMPLES_LOST        (uint8_t) (COLOUR_HISTORY_NUM / (GET_COL_TIME))
+#define SAMPLES_LOST        2
+//#define COLOUR_SAMPLE       (uint16_t) (GET_COL_TIME * SFREQ)
+#define COLOUR_SAMPLE       6 //alt_sample ? 6 : 7
+//#define COLOUR_OFFSET       COLOUR_SAMPLE >> 1                  // Div by 2
+
+// Current Colour to write
+#define curr_y              (colour_count / 6) % 320
+static uint8_t curr_x       = 0;
+
 static uint16_t colour_count = 0;
 static uint16_t sync_count = 0;
 
-//
 static uint16_t colour_history = 0;
 static uint16_t sync_history = 0;
 static bool in_colour_flag = false;
 static bool in_sync_flag = false;
+
+// First enter flags
+static bool sync_first_enter = false;
+static bool colour_first_enter = false;
 
 void decoder(int16_t in_buff) {
     header_fsm(in_buff);
@@ -131,15 +147,20 @@ int header_fsm(uint16_t freq) {
                     new_vis_code = true;
 
                     // Colour Decoding Vars
-                    print_colour = true;
-                    print_sync = true;
                     colour_count = 0;
                     sync_count = 0;
 
                     colour_history = 0;
                     sync_history = 0;
+
                     in_colour_flag = false;
                     in_sync_flag = true;
+
+                    sync_first_enter = false;
+                    colour_first_enter = false;
+
+                    // Pixel Coorinates
+                    curr_x = 0;
                 }
 
                 nextState_intoBound(freq, h_code, h_idle);
@@ -207,49 +228,92 @@ void colour_decoder(uint16_t freq) {
     // It'll be in either colour or sync
     colour_history  = (colour_history << 1) | BOUND_RANGE_FREQ(freq, c_line.freq, c_line.freq_lb);
 
-    // Entered Colour - not update flag everytime
-    if (!in_colour_flag && (colour_history == 0xFFFF)) {
-        in_colour_flag = true;
-        in_sync_flag = false;
-    }
-
-    // Entered Sync - not update sync everytime
-    else if (!in_sync_flag && (colour_history == 0x0000)) {
-        in_colour_flag = false;
-        in_sync_flag = true;
-    }
-
-    // Decoding Logic 
+    // Colour Mode
     if (in_colour_flag) {
-        if (print_sync) {
+        colour_count++;
+
+        // if Colour First Enter
+        if (colour_first_enter) {
+            // Print 
             printf("Sync #%d\n", sync_count);
 
-            // Reset Sync Count
+            // Reset Vars
+            colour_first_enter = false;
             sync_count = 0;
-
-            // Print new set of values
-            print_sync = false;
-            print_colour = true;
         }
 
-        // New sample
-        colour_count++;
+        // If Sync Enter
+        else if (colour_history == 0x0000) {
+            in_colour_flag = false;
+            in_sync_flag = true;
+
+            // Colour First Enter
+            sync_first_enter = true;
+        }
+
+        // Colour Decoding Logic    //
+
+        // New Sample
+        if (!(colour_count % COLOUR_SAMPLE)) {
+            // Change Colour Sample from 6 to 7 or back
+            //alt_sample++;      
+            //printf("%d,%d\n", curr_x, curr_y);
+            //imageBuffer[PIX(curr_x, curr_y)] = TFT_AQUAMARINE;
+            //ili9341_drawRect(50, curr_y, 1, 1, TFT_AQUAMARINE);
+            uint8_t colour64 = ((2300 - freq) << 4) / 325;
+            uint8_t colour32 = ((2300 - freq) << 3) / 325;
+
+            // Different colour Sections
+            switch(colour_count / (GET_MODE_WIDTH * COLOUR_SAMPLE)) {
+                // Green
+                case 0: 
+                    imageBuffer[PIX(curr_x, curr_y)] = (colour64 << 6);
+                    break;
+
+                // Blue
+                case 1: 
+                    imageBuffer[PIX(curr_x, curr_y)] = (imageBuffer[PIX(curr_x, curr_y)]) | colour32;
+                    break;
+                
+                // Red
+                case 2: 
+                    imageBuffer[PIX(curr_x, curr_y)] = (colour32 << 11) | (imageBuffer[PIX(curr_x, curr_y)]);
+                    break;
+
+                default: 
+                    //imageBuffer[PIX(curr_x, curr_y)] = TFT_RED;
+                    break;
+            } 
+        }
+        ////    ////   ////   ////  ////
     }
-    // Sync mode
+
+    // Sync Mode
     else {
-        if (print_colour) {
+        sync_count++;
+
+        // If Sync First Enter
+        if (sync_first_enter) {
+            // Print 
             printf("Colour #%d\n", colour_count);
 
-            // Reset Sync Count
-            colour_count = 0;
+            // Reset Vars
+            sync_first_enter = false;
 
-            // Print new set of values
-            print_sync = true;
-            print_colour = false;
+            // Updating Coordinates
+            colour_count = SAMPLES_LOST;    // History loses first few samples     
+            curr_x++;
+            //ili9341_drawRect(curr_x, 50, 2, 2, TFT_AQUAMARINE);
         }
 
-        // New sample
-        sync_count++;
+        // If Colour Enter
+        else if (colour_history == COLOUR_HISTORY) {
+            in_colour_flag = true;
+            in_sync_flag = false;
+
+            // Colour First Enter
+            colour_first_enter = true;
+        }
     }
 }
 

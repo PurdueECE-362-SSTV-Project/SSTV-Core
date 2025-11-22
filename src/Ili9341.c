@@ -81,10 +81,18 @@ static void ILI9341_SetOutWriting(int sc, int ec, int sp, int ep) {
 /// @param pconfig Control structure of display.
 /// @param buffer Data buffer.
 /// @param bytes Size of the buffer in bytes.
-static void ILI9341_WriteData(const void* buf, int bytes) {
+static void ILI9341_WriteData8(const uint8_t* buf, int bytes) {
     ILI9341_CS_Set(CS_ENABLE);
-    spi_write_blocking(s_spi, (const uint8_t*)buf, bytes);
+    spi_write_blocking(s_spi, buf, bytes);
     ILI9341_CS_Set(CS_DISABLE);
+}
+
+static void ILI9341_WriteData16(const uint16_t* buf, int bytes) {
+    ILI9341_CS_Set(CS_ENABLE);
+    spi_set_format(spi0, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+    spi_write16_blocking(s_spi, buf, bytes);
+    ILI9341_CS_Set(CS_DISABLE);
+    spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
 }
 
 /// @brief Writes an image buffer to display
@@ -93,13 +101,14 @@ void ILI9341_writeImageBuffer(void) {
     ILI9341_SetOutWriting(0, PIX_WIDTH - 1, 0, PIX_HEIGHT - 1);
     for (int y = PIX_HEIGHT - 1; y >= 0; --y) {
         const uint16_t* row = (const uint16_t*)&imageBuffer[y * PIX_WIDTH];
-        ILI9341_WriteData(row, (int)(PIX_WIDTH * sizeof(uint16_t)));
+        ILI9341_WriteData16(row, (int)(PIX_WIDTH));
     }
 }
 
 /// @brief Set the entire Screen a colour
 void ILI9341_setScreenColour(uint16_t color16) {
     if (!imageBuffer) return;
+
     for (int i = 0; i < PIX_HEIGHT * PIX_WIDTH; ++i) {
         imageBuffer[i] = color16;
     }
@@ -166,14 +175,14 @@ static void hw_init(spi_inst_t* pspi_port,
     ILI9341_SetCommand(ILI9341_GMCTRP1);
     {
         uint8_t data[15] = {0x0f,0x31,0x2b,0x0c,0x0e,0x08,0x4e,0xf1,0x37,0x07,0x10,0x03,0x0e,0x09,0x00};
-        ILI9341_WriteData(data, 15);
+        ILI9341_WriteData8(data, 15);
     }
 
     // Negative gamma correction.
     ILI9341_SetCommand(ILI9341_GMCTRN1);
     {
         uint8_t data2[15] = {0x00,0x0e,0x14,0x03,0x11,0x07,0x31,0xc1,0x48,0x08,0x0f,0x0c,0x31,0x36,0x0f};
-        ILI9341_WriteData(data2, 15);
+        ILI9341_WriteData8(data2, 15);
     }
 
     //MV = 1 - Row/Column Exchange
@@ -253,7 +262,6 @@ uint16_t ili9341_RGBAto16bit(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     return res;
 }
 
-
 void ili9341_drawRect(uint16_t x, uint16_t y, uint16_t wid, uint16_t hei, uint16_t color) {
     if (!imageBuffer) return;
     
@@ -262,6 +270,12 @@ void ili9341_drawRect(uint16_t x, uint16_t y, uint16_t wid, uint16_t hei, uint16
             imageBuffer[PIX(idx_x, idx_y)] = color;
         }
     }
+}
+
+void ili9341_drawPixel(uint16_t x, uint16_t y, uint16_t color) {
+    if (!imageBuffer) return;
+    
+    imageBuffer[PIX(x, y)] = color;
 }
 
 

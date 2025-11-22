@@ -123,12 +123,11 @@ int main()
 	ILI9341_setScreenColour(TFT_BLACK);
 
     // Draw A Small Rectangle
-    ili9341_drawRect(120, 100, 20, 20, TFT_BLUE);
+    ili9341_drawRect(120, 100, 20, 20, TFT_AQUA);
     sleep_ms(100);
 
     {
-        uint16_t color = ili9341_RGBto16bit(0xE0, 0x30, 0x3F);
-        ili9341_putStr("Hello", 20, 20, color, TFT_WHEAT);
+        ili9341_putStr("Hello", 20, 20, TFT_AZURE, TFT_LIGHTSEAGREEN);
     }
 
     uint16_t counter = 0;

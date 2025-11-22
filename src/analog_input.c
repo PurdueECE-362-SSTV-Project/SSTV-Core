@@ -1,17 +1,20 @@
 #include <stdio.h>
 #include <string.h>
-
-// Pico Libraries
 #include "pico/stdlib.h"
 #include "hardware/timer.h"
 #include "hardware/irq.h"
 #include "hardware/adc.h"
 #include "hardware/dma.h"
 #include "hardware/i2c.h"
-
-// Custom
 #include "fft_functions.h"
-#include "input_control.h"
+
+
+#define SI4703_ADDR 0x10
+#define RF_I2C_SDIO 36
+#define RF_I2C_SCLK 37
+#define RF_RST 40
+#define ADC_PIN 41
+
 
 volatile bool dma_flag = false;
 volatile bool ping_active = true;
@@ -19,6 +22,30 @@ volatile int16_t ping_buf[NFFT];
 volatile int16_t pong_buf[NFFT];
 
 int dma_chan;
+
+
+// void run_fft_on_dma() {
+//     // Copy volatile DMA buffer to local array
+//     uint16_t adc_local[NFFT];
+//     // float f = 50.0f;
+//     // for (int i = 0; i < NFFT; i++) {
+//     //     float t = (float)i / SFREQ;
+//     //     float sample = sinf(2.0f * M_PI * f * t);
+//     //     adc_local[i] = (uint16_t)(2048 + 2047 * sample);  // 0–4095 range
+//     // }
+//     for (int i = 0; i < NFFT; i++) {
+//         adc_local[i] = adc_buffer[i];
+//     }
+//     // for(int i=0;i<NFFT;i++){
+//     //     printf("%u\n" ,adc_local[i]);
+//     // }
+//     // Call FFT on local copy
+//     fft(adc_local);
+
+//     dma_channel_set_read_addr(dma_chan, &adc_hw->fifo, false);
+//     dma_channel_set_write_addr(dma_chan, adc_buffer, false);
+//     dma_channel_set_transfer_count(dma_chan, NFFT, true);
+// }
 
 void dma_handler(){
     dma_hw->intr = 1u << dma_chan; // Clear the interrupt request
@@ -87,7 +114,32 @@ void rf_init_i2c() {
     printf("I2C Init\n");
 }
 
+void rf_write_register(uint16_t reg02, uint16_t reg03, uint16_t reg04,
+                        uint16_t reg05, uint16_t reg06, uint16_t reg07) {
+    uint8_t buffer[12];
+
+    // Register order: 0x02 -> 0x07
+    buffer[0]  = (reg02 >> 8) & 0xFF;  // 0x02 Upper
+    buffer[1]  = reg02 & 0xFF;         // 0x02 Lower
+    buffer[2]  = (reg03 >> 8) & 0xFF;  // 0x03 Upper
+    buffer[3]  = reg03 & 0xFF;         // 0x03 Lower
+    buffer[4]  = (reg04 >> 8) & 0xFF;  // 0x04 Upper
+    buffer[5]  = reg04 & 0xFF;         // 0x04 Lower
+    buffer[6]  = (reg05 >> 8) & 0xFF;  // 0x05 Upper
+    buffer[7]  = reg05 & 0xFF;         // 0x05 Lower
+    buffer[8]  = (reg06 >> 8) & 0xFF;  // 0x06 Upper
+    buffer[9]  = reg06 & 0xFF;         // 0x06 Lower
+    buffer[10] = (reg07 >> 8) & 0xFF;  // 0x07 Upper
+    buffer[11] = reg07 & 0xFF;         // 0x07 Lower
+
+
+    int ret = i2c_write_blocking(i2c0, SI4703_ADDR, buffer, 12, true);
+    printf("Write returned: %d\n", ret);
+}
+
+
 void rf_init() {
+
   //RST Toggled for 2 wire mode
   gpio_init(RF_RST);
   gpio_set_dir(RF_RST, true);
@@ -113,30 +165,6 @@ void rf_init() {
     reg05 |= (15 & 0x0F);  // Set volume to 15
     rf_write_register(reg02, reg03, reg04, reg05, reg06, reg07);
     sleep_ms(110);
-    rf_tune(911);
-}
-
-void rf_write_register(uint16_t reg02, uint16_t reg03, uint16_t reg04,
-                        uint16_t reg05, uint16_t reg06, uint16_t reg07) {
-    uint8_t buffer[12];
-
-    // Register order: 0x02 -> 0x07
-    buffer[0]  = (reg02 >> 8) & 0xFF;  // 0x02 Upper
-    buffer[1]  = reg02 & 0xFF;         // 0x02 Lower
-    buffer[2]  = (reg03 >> 8) & 0xFF;  // 0x03 Upper
-    buffer[3]  = reg03 & 0xFF;         // 0x03 Lower
-    buffer[4]  = (reg04 >> 8) & 0xFF;  // 0x04 Upper
-    buffer[5]  = reg04 & 0xFF;         // 0x04 Lower
-    buffer[6]  = (reg05 >> 8) & 0xFF;  // 0x05 Upper
-    buffer[7]  = reg05 & 0xFF;         // 0x05 Lower
-    buffer[8]  = (reg06 >> 8) & 0xFF;  // 0x06 Upper
-    buffer[9]  = reg06 & 0xFF;         // 0x06 Lower
-    buffer[10] = (reg07 >> 8) & 0xFF;  // 0x07 Upper
-    buffer[11] = reg07 & 0xFF;         // 0x07 Lower
-
-
-    int ret = i2c_write_blocking(i2c0, SI4703_ADDR, buffer, 12, true);
-    printf("Write returned: %d\n", ret);
 }
 
 void rf_read_register(uint16_t *regs) {
@@ -235,14 +263,9 @@ void rf_tune(uint16_t frequency_10x) {
 
 void rf_set_volume(uint16_t volume) {
     uint16_t regs[16];
-
-    rf_read_register(regs); //reads current register values into regs
-
-    // Volume is in lower 4 bits of reg 0x05
-    regs[0x05] = (regs[0x05] & 0xFFF0) | (volume & 0x0F);
-
+    rf_read_register(regs);
+    regs[0x05] = (regs[0x05] & 0xFFF0) | (volume & 0x0F); // Set volume bits
     rf_write_register(regs[0x02], regs[0x03], regs[0x04],
                      regs[0x05], regs[0x06], regs[0x07]);
-
-    printf("Volume set to: %u\n", volume);
+    printf("Volume set to %u\n", volume);
 }

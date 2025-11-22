@@ -38,10 +38,12 @@ extern volatile uint16_t freq_flag;
 //////////////////////////////////////////////////////////////////////////////
 
 void core1_main() {
+
+    uint16_t regs[16];
     sleep_ms(10);
     rf_init_i2c();
     rf_init();
-    uint16_t regs[16];
+    rf_tune(frequency10x);
 
     rf_read_register(regs);
     rf_print_registers(regs);
@@ -91,7 +93,7 @@ void core1_main() {
             printf("Front Button 3 Pressed\n");
         }
         // Constantly Write to the Image Buffer
-        ILI9341_writeImageBuffer();
+        //ILI9341_writeImageBuffer();
     }
 }
 

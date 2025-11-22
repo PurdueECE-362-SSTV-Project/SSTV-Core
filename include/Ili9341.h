@@ -25,7 +25,7 @@ void init_imageBuffer(void);
 #define PIN_SCK     18
 #define PIN_DC      20
 #define PIN_nRESET  16
-#define PIN_SDO     36
+#define PIN_SDO     43
 #define PIN_LED     23
 
 // Initialize display and SPI/GPIO, choose orientation

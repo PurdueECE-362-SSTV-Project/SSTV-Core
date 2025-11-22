@@ -72,45 +72,50 @@ void rotary_logic(uint16_t freq_flag) {
     unsigned char result = rotary_state();
 
     if (result & DIR_CW) {
-
-        if ((freq_flag & 0x01) && (frequency10x < 1080)) {
-            frequency10x += 1;      // +0.1 MHz
-        }
-        else if ((freq_flag & 0x02) && (frequency10x < 1070)) {
-            frequency10x += 10;     // +1 MHz
-        }
-        else {
+        if((!freq_flag)) {
+            // Not in frequency mode, or both frequency modes selected: adjust volume
             if (volume_level < 15)
                 volume_level++;
             printf("Volume = %d\n", volume_level);
         }
+        else if ((freq_flag & 0x01) && (frequency10x < 1080)) {
+            frequency10x += 1;      // +0.1 MHz
+            printf("Frequency = %d\n", frequency10x);
+        }
+        else if ((freq_flag & 0x02) && (frequency10x < 1070)) {
+            frequency10x += 10;     // +1 MHz
+            printf("Frequency = %d\n", frequency10x);
+        }
     }
     else if (result & DIR_CCW) {
-
-        if ((freq_flag & 0x01) && (frequency10x > 761)) {
-            frequency10x -= 1;      // -0.1 MHz
-        }
-        else if ((freq_flag & 0x02) && (frequency10x > 770)) {
-            frequency10x -= 10;     // -1 MHz
-        }
-        else {
+        if((!freq_flag)) {
+            // Not in frequency mode, or both frequency modes selected: adjust volume
             if (volume_level > 0)
                 volume_level--;
             printf("Volume = %d\n", volume_level);
         }
+        else if ((freq_flag & 0x01) && (frequency10x > 761)) {
+            frequency10x -= 1;      // -0.1 MHz
+            printf("Frequency = %d\n", frequency10x);
+        }
+        else if ((freq_flag & 0x02) && (frequency10x > 770)) {
+            frequency10x -= 10;     // -1 MHz
+            printf("Frequency = %d\n", frequency10x);
 
+        }
     }
 }
 
 
-void set_volume(int16_t delta) {
-    // Placeholder function to set volume
-    printf("Setting volume, delta=%d\n", delta);
+void set_volume() {
+    uint16_t regs[16];
+    //rf_init();
+    //rf_read_register(regs);
 }
 
 void rotary_switch_logic(uint16_t frequency_10x, uint16_t volume) {
     rf_tune(frequency_10x); //tune to frequency MHz
-    rf_set_volume(volume);
+    set_volume();
     printf("Frequency set to %d, Volume set to %d\n", frequency_10x, volume);
 }
 
@@ -144,7 +149,7 @@ void rotary_isr() {
         uint32_t now = to_ms_since_boot(get_absolute_time());
         if (now - last_rot_sw_time > ROT_SW_DEBOUNCE_MS) {
             frontbutton1_flag = true;
-            freq_flag = (freq_flag +1) % 4;
+            freq_flag = (freq_flag +1) % 3;
             last_rot_sw_time = now;
         }
         gpio_acknowledge_irq(FRONTBUTTON1, GPIO_IRQ_EDGE_FALL);

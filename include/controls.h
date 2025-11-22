@@ -41,5 +41,4 @@ extern const unsigned char ttable[6][4];
 void init_pushbuttons();
 void pushbutton_isr();
 void init_pushbutton_irq();
-
 #endif

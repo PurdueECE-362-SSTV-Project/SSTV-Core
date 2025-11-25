@@ -6,11 +6,13 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 #include "hardware/pwm.h"
+#include "hardware/dma.h"
 
 // Custom
 #include "ili9341hw.h"
 #include "Ili9341.h"
-#include "PubSansBlack.h" 
+#include "input_control.h"
+#include "PubSansBlack.h"
 
 // Global Variables updated instead of class variables
 static spi_inst_t* s_spi = NULL;
@@ -29,12 +31,67 @@ static uint16_t s_height = 320;
 // imageBuffer
 volatile uint16_t* imageBuffer = NULL;
 
+// Global so both DMA and IRQ can access
+static dma_channel_config display_cfg;
+
+#define IMG_PIXELS  (PIX_WIDTH * PIX_HEIGHT)
+
+static void ILI9341_SetOutWriting(int, int, int, int);
+static inline void ILI9341_CS_Set(int);
+
 // initialize the imageBuffer
 void init_imageBuffer(void) {
     imageBuffer = (volatile uint16_t*) calloc(PIX_WIDTH * PIX_HEIGHT, sizeof(uint16_t));
     if (!imageBuffer) {
         printf("malloc failed for framebuffer\n");
     }
+}
+
+void display_init_dma(void) {
+    display_cfg = dma_channel_get_default_config(TFT_DMA_CH);
+    channel_config_set_transfer_data_size(&display_cfg, DMA_SIZE_16);
+    channel_config_set_dreq(&display_cfg, spi_get_dreq(s_spi, true));
+    channel_config_set_read_increment(&display_cfg, true);
+    channel_config_set_write_increment(&display_cfg, false);
+    // No ring buffer, single shot
+
+    // Set up IRQ: DMA channel will trigger whenever the transfer completes
+    dma_channel_set_irq0_enabled(TFT_DMA_CH, true);
+    
+    // Set up display and chip select ONCE before DMA
+    ILI9341_SetOutWriting(0, PIX_WIDTH - 1, 0, PIX_HEIGHT - 1);
+    ILI9341_Write16_Prepare();
+    ILI9341_CS_Set(CS_ENABLE);
+
+    //printf("%d\n", TFT_DMA_CH);
+
+    // Start the first DMA transfer
+    dma_channel_configure(
+        TFT_DMA_CH,
+        &display_cfg,
+        &spi_get_hw(s_spi)->dr,   // SPI data register address
+        imageBuffer,
+        IMG_PIXELS,               // Number of halfwords
+        true                      // Start immediately
+    );
+}
+
+void dma_display_irq(void) {
+    ILI9341_CS_Set(CS_DISABLE);
+    ILI9341_SetOutWriting(0, PIX_WIDTH - 1, 0, PIX_HEIGHT - 1);
+    //printf("Hello!\n");
+    ILI9341_Write16_Prepare();
+    ILI9341_CS_Set(CS_ENABLE);
+
+    // Restart new DMA transfer for continuous refresh:
+    dma_channel_configure(
+        TFT_DMA_CH,
+        &display_cfg,
+        &spi_get_hw(s_spi)->dr,
+        imageBuffer,
+        IMG_PIXELS,
+        true
+    );
 }
 
 static inline void ILI9341_CS_Set(int state) {
@@ -44,18 +101,22 @@ static inline void ILI9341_CS_Set(int state) {
 }
 
 static void ILI9341_SetCommand(uint8_t cmd) {
+    ILI9341_Write8_Prepare();
     ILI9341_CS_Set(CS_ENABLE);
     gpio_put(s_gp_dc, 0);
     asm volatile("nop \n nop \n nop");
     spi_write_blocking(s_spi, &cmd, 1);
     gpio_put(s_gp_dc, 1);
     ILI9341_CS_Set(CS_DISABLE);
+    ILI9341_Write8_End();
 }
 
 static void ILI9341_CommandParam(uint8_t data) {
+    ILI9341_Write8_Prepare();
     ILI9341_CS_Set(CS_ENABLE);
     spi_write_blocking(s_spi, &data, 1);
     ILI9341_CS_Set(CS_DISABLE);
+    ILI9341_Write8_End();
 }
 
 static void ILI9341_SetOutWriting(int sc, int ec, int sp, int ep) {
@@ -77,9 +138,8 @@ static void ILI9341_SetOutWriting(int sc, int ec, int sp, int ep) {
     ILI9341_SetCommand(ILI9341_RAMWR);
 }
 
-/// @brief Writes a data buffer to display.
-/// @param pconfig Control structure of display.
-/// @param buffer Data buffer.
+/// @brief Writes a 8 Bit data buffer to display.
+/// @param buf Data buffer.
 /// @param bytes Size of the buffer in bytes.
 static void ILI9341_WriteData8(const uint8_t* buf, int bytes) {
     ILI9341_CS_Set(CS_ENABLE);
@@ -87,22 +147,44 @@ static void ILI9341_WriteData8(const uint8_t* buf, int bytes) {
     ILI9341_CS_Set(CS_DISABLE);
 }
 
+/// @brief Writes a 16 Bit data buffer to display.
+/// @param buf Data buffer.
+/// @param bytes Size of the buffer in bytes.
 static void ILI9341_WriteData16(const uint16_t* buf, int bytes) {
     ILI9341_CS_Set(CS_ENABLE);
-    spi_set_format(spi0, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
     spi_write16_blocking(s_spi, buf, bytes);
     ILI9341_CS_Set(CS_DISABLE);
-    spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
 }
 
 /// @brief Writes an image buffer to display
-void ILI9341_writeImageBuffer(void) {
+void ILI9341_write16ImageBuffer(void) {
     if (!imageBuffer) return;
+    ILI9341_Write16_Prepare();
     ILI9341_SetOutWriting(0, PIX_WIDTH - 1, 0, PIX_HEIGHT - 1);
     for (int y = PIX_HEIGHT - 1; y >= 0; --y) {
         const uint16_t* row = (const uint16_t*)&imageBuffer[y * PIX_WIDTH];
         ILI9341_WriteData16(row, (int)(PIX_WIDTH));
     }
+    ILI9341_Write16_End();
+}
+
+/// @brief Writes an image buffer to display
+void ILI9341_write16ImageBuffer_Test(void) {
+    if (!imageBuffer) return;
+    ILI9341_SetOutWriting(0, PIX_WIDTH - 1, 0, PIX_HEIGHT - 1);
+    ILI9341_WriteData16((const uint16_t*) imageBuffer, (int)(IMG_PIXELS));
+}
+
+/// @brief Writes an image buffer to display
+void ILI9341_write8ImageBuffer(void) {
+    if (!imageBuffer) return;
+    ILI9341_SetOutWriting(0, PIX_WIDTH - 1, 0, PIX_HEIGHT - 1);
+    ILI9341_Write8_Prepare();
+    for (int y = PIX_HEIGHT - 1; y >= 0; --y) {
+        const uint8_t* row = (const uint8_t*)&imageBuffer[y * PIX_WIDTH];
+        ILI9341_WriteData8(row, (int)(PIX_WIDTH));
+    }
+    ILI9341_Write8_End();
 }
 
 /// @brief Set the entire Screen a colour
@@ -113,6 +195,22 @@ void ILI9341_setScreenColour(uint16_t color16) {
         imageBuffer[i] = color16;
     }
 }
+
+void ILI9341_Write16_Prepare() {
+    spi_set_format(s_spi, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+}
+void ILI9341_Write16_End() {
+    spi_set_format(s_spi, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+}
+
+void ILI9341_Write8_Prepare() {
+    spi_set_format(s_spi, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+}
+
+void ILI9341_Write8_End() {
+    spi_set_format(s_spi, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+}
+
 
 static void hw_init(spi_inst_t* pspi_port,
                     int spi_clock_freq,

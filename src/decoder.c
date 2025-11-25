@@ -74,7 +74,7 @@ static bool alt_sample = 0;
 
 // Current Colour to write
 #define curr_y              (colour_count / 6) % 320
-static uint8_t curr_x       = 0;
+static uint16_t curr_x       = 0;
 
 static uint16_t colour_count = 0;
 static uint16_t sync_count = 0;
@@ -160,7 +160,7 @@ int header_fsm(uint16_t freq) {
                     colour_first_enter = false;
 
                     // Pixel Coorinates
-                    curr_x = 0;
+                    curr_x = PIX_WIDTH;
                 }
 
                 nextState_intoBound(freq, h_code, h_idle);
@@ -302,7 +302,7 @@ void colour_decoder(uint16_t freq) {
 
             // Updating Coordinates
             colour_count = SAMPLES_LOST;    // History loses first few samples     
-            curr_x++;
+            curr_x--;
             //ili9341_drawRect(curr_x, 50, 2, 2, TFT_AQUAMARINE);
         }
 

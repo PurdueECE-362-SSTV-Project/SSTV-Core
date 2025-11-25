@@ -3,6 +3,12 @@
 
 #include <stdio.h>
 
+// DMA CONFIG   //
+#define ADC_DMA_CH  0
+#define TFT_DMA_CH  1
+
+void dma_irq_handler(void);
+
 // Analog Input //
 #define SI4703_ADDR 0x10
 #define RF_I2C_SDIO 36
@@ -12,6 +18,7 @@
 
 void init_adc();
 void init_dma();
+void init_adc_dma();
 void dma_handler();
 
 void rf_init();

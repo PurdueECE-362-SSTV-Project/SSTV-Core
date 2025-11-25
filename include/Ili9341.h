@@ -14,11 +14,12 @@
 extern volatile uint16_t* imageBuffer;        // Framebuffer: PIX_WIDTH x PIX_HEIGHT, RGB565 big-endian
 
 // image buffer 2D reference
-#define PIX(x,y) ((size_t)(y) * (size_t)PIX_WIDTH + (size_t)(x))
+#define PIX(x,y) ((size_t)((PIX_HEIGHT - 1) - y) * (size_t)PIX_WIDTH + (size_t)(x))
 
 // Initialize framebuffer allocation
 void init_imageBuffer(void);
-uint16_t reverse_bits_16_lut(uint16_t x);
+void display_init_dma();
+void dma_display_irq(void);
 
 // TFT Pin Values
 #define PIN_SDI     19
@@ -26,7 +27,7 @@ uint16_t reverse_bits_16_lut(uint16_t x);
 #define PIN_SCK     18
 #define PIN_DC      20
 #define PIN_nRESET  16
-#define PIN_SDO     43
+#define PIN_SDO     36
 #define PIN_LED     23
 
 // Initialize display and SPI/GPIO, choose orientation
@@ -40,6 +41,14 @@ void ili9341_init(spi_inst_t* pspi_port,
                   uint8_t gpio_DC,
                   uint8_t led,
                   bool portrait);
+
+
+void ILI9341_Write8_Prepare();
+void ILI9341_Write8_End();
+
+void ILI9341_Write16_Prepare();
+void ILI9341_Write16_End();
+
 
 // Orientation and geometry getters
 bool ili9341_isPortrait(void);
@@ -64,9 +73,11 @@ int ili9341_putStr(const char* s, uint16_t x, uint16_t y, uint16_t fg, uint16_t 
 void ili9341_clear(void);
 void ili9341_test(void);
 
-void ILI9341_writeImageBuffer(void);
+void ILI9341_write16ImageBuffer(void);
+void ILI9341_write16ImageBuffer_Test(void);
+void ILI9341_write8ImageBuffer(void);
 
 // Fill framebuffer with a constant 16-bit color
-void ILI9341_setScreenColour(uint16_t color16);
+void ILI9341_setScreenColour(uint16_t);
 
 #endif

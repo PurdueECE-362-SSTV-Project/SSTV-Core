@@ -7,6 +7,7 @@
 #include "hardware/dma.h"
 #include "hardware/i2c.h"
 #include "fft_functions.h"
+#include "input_control.h"
 
 
 #define SI4703_ADDR 0x10
@@ -47,15 +48,14 @@ int dma_chan;
 //     dma_channel_set_transfer_count(dma_chan, NFFT, true);
 // }
 
-void dma_handler(){
-    dma_hw->intr = 1u << dma_chan; // Clear the interrupt request
+void dma_handler() {
     dma_flag = true;
     if (ping_active) {
         //process_buffer(ping_buf);
-        dma_channel_set_write_addr(dma_chan, pong_buf, true);
+        dma_channel_set_write_addr(ADC_DMA_CH, pong_buf, true);
     } else {
         //process_buffer(pong_buf);
-        dma_channel_set_write_addr(dma_chan, ping_buf, true);
+        dma_channel_set_write_addr(ADC_DMA_CH, ping_buf, true);
     }
     ping_active = !ping_active;
 }
@@ -77,9 +77,8 @@ void init_adc() {
   adc_run(true);
 }
 
-void init_dma() {
-    dma_chan = dma_claim_unused_channel(true);
-    dma_channel_config c = dma_channel_get_default_config(dma_chan);
+void init_adc_dma() {
+    dma_channel_config c = dma_channel_get_default_config(ADC_DMA_CH);
 
     channel_config_set_transfer_data_size(&c, DMA_SIZE_16);
     channel_config_set_read_increment(&c, false);
@@ -87,7 +86,7 @@ void init_dma() {
     channel_config_set_dreq(&c, DREQ_ADC);
 
     dma_channel_configure(
-        dma_chan,
+        ADC_DMA_CH,
         &c,
         ping_buf,       // initial destination
         &adc_hw->fifo,  // source
@@ -95,11 +94,9 @@ void init_dma() {
         false           // don’t start yet
     );
 
-    dma_channel_set_irq0_enabled(dma_chan, true);
-    irq_set_exclusive_handler(DMA_IRQ_0, dma_handler);
-    irq_set_enabled(DMA_IRQ_0, true);
+    dma_channel_set_irq0_enabled(ADC_DMA_CH, true);
 
-    dma_start_channel_mask(1u << dma_chan);
+    dma_start_channel_mask(1u << ADC_DMA_CH);
 }
 
 void rf_init_i2c() {

@@ -8,12 +8,20 @@
 // Include FFT Global Variables
 #include "fft_functions.h"
 
- // Time Keeping
-extern volatile float diffrential_time;
+#define COL_TH_UP    50
+#define COL_TH_LW    (FREQ_TH >> 3)
+
+// Colour Histroy Information
+#define COLOUR_HISTORY_NUM  16
+#define COLOUR_HISTORY      0xFFFF
+
+// VIS CODE Flags
+#define VIS_BITS_TOTAL   8                                     // Number of bits in a VIS code
+#define SAMPLES_PER_BIT  (uint16_t) ((SFREQ / 1000) * 30)      // Number of samples per bit (~30ms) 
 
 typedef enum{
-    GBR, // RGB
-    YCRCB,  // YCrCb
+    GBR,            // RGB
+    YCRCB,          // YCrCb
 } ColorFormat;
 
 typedef enum {
@@ -29,15 +37,20 @@ typedef enum {
  } SSTV_Mode;
 
 typedef struct {
-    SSTV_Mode decMode;  // Decode mode
-    ColorFormat color; // RGB or YCrCb
-    int row;       // Number of rows
-    int col;       // Nymber of columns
-    int tranTime;  // Total transfer time (s)
-    float lineTime;  // Line scan time (ms)
-    float lineS;   // Line sync (ms)
-    float colorS;  // Color sync (ms) ONLY for YCrCb
-    int format;    // ONLY Robot type modes (1 = 4:02:00, 2 = 4:02:02 )
+    SSTV_Mode decMode;      // Decode mode
+    ColorFormat color;      // RGB or YCrCb
+    int row;                // Number of rows
+    int col;                // Nymber of columns
+    int tranTime;           // Total transfer time (s)
+    float lineTime;         // Line scan time (s)
+    float colorTime;        // Col scan time (s)
+    float colTimeSample;    // Num Col Samples
+    uint8_t colSampleL;     // Num Single Col Sample (Lower)
+    uint8_t pixelsLost;     // Num Exp Pixel loss
+    float colFrac;          // Per Pixel Col Loss
+    float lineS;            // Line sync (ms)
+    float colorS;           // Color sync (ms) ONLY for YCrCb
+    int format;             // ONLY Robot type modes (1 = 4:02:00, 2 = 4:02:02 )
 } sstv_mode_t;
 
  typedef enum {
@@ -47,10 +60,6 @@ typedef struct {
     DECODE_MODE
  } Header_State;
 
-  typedef enum {
-    C_IDLE, COLOUR, SYNC
- } Colour_State;
-
   typedef struct {
     Header_State State;
     uint16_t freq;      // Frequency (upper bound if applicable)
@@ -59,9 +68,11 @@ typedef struct {
  } Decoder_FSM_Val;
 
    typedef struct {
-    Colour_State State;
+    uint16_t freqCol;
+    uint16_t freqCol_lb;
     uint16_t freq;      // Frequency (upper bound if applicable)
     uint16_t freq_lb;   // Frequency lower bound
+    float freqDiv;
  } Colour_Decoder_Val;
 
 // Funtion Definations  //
@@ -71,10 +82,6 @@ sstv_mode_t initVISMode(uint8_t);
 int header_fsm(uint16_t);
 void decoder(int16_t);
 void colour_decoder(uint16_t);
-
-// Time
-void time_incrementer(bool);
-void update_time();
 
 // Expected Val
 void update_decoder_exp();

@@ -13,40 +13,33 @@ static const Decoder_FSM_Val h_sync2     = {.State  = SYNC2,       .freq = 1900,
 static const Decoder_FSM_Val h_start     = {.State  = START_BIT,   .freq = 1200,   .freq_lb = 0,    .diff_time = 30};
 static const Decoder_FSM_Val h_code      = {.State  = CODE,        .freq = 1300,   .freq_lb = 1100, .diff_time = 240};
 static const Decoder_FSM_Val h_stop      = {.State  = STOP_BIT,    .freq = 1200,   .freq_lb = 0,    .diff_time = 30};
-static const Decoder_FSM_Val h_decode    = {.State  = DECODE_MODE, .freq = 2300,   .freq_lb = 1200, .diff_time = 300};     // Go into decoding mode
+static const Decoder_FSM_Val h_decode    = {.State  = DECODE_MODE, .freq = 2350,   .freq_lb = 1150, .diff_time = 300};     // Go into decoding mode
 
 // Colour FSM Vars
-static const Colour_Decoder_Val c_line  = {.State = COLOUR, .freq = 2300,    .freq_lb = 1500 + (FREQ_TH >> 3)};
-//static const Colour_Decoder_Val c_sync  = {.State = SYNC,   .freq = 1500 - (FREQ_TH << 1),    .freq_lb = 1200};
+static const Colour_Decoder_Val c_line  = {.freqCol = 2300,     .freqCol_lb = 1500,     .freq = 2300 + COL_TH_UP,    .freq_lb = 1500 + COL_TH_LW,      .freqDiv = 2300.0 - 1500.0};
 
 // SSTV MODE Vars
-static const sstv_mode_t Robot36     =  {.decMode = ROBOT_36,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 36,     .lineTime = 45,            .lineS = 10.5,  .colorS = 4.5, .format = 1};
-static const sstv_mode_t Robot72     =  {.decMode = ROBOT_72,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 72,     .lineTime = 92,            .lineS = 12.0,  .colorS = 6.0, .format = 2};
-static const sstv_mode_t Martin1     =  {.decMode = MARTIN_1,    .color = GBR,   .row = 320,     .col = 256,     .tranTime = 114,    .lineTime = 146.432,       .lineS = 4.862, .colorS = 0.0, .format = 0};
-static const sstv_mode_t Martin2     =  {.decMode = MARTIN_2,    .color = GBR,   .row = 256,     .col = 160,     .tranTime = 58,     .lineTime = 73.216,        .lineS = 4.862, .colorS = 0.0, .format = 0};
-static const sstv_mode_t Scottie2    =  {.decMode = SCOTTIE_2,   .color = GBR,   .row = 256,     .col = 160,     .tranTime = 71,     .lineTime = 88.064,        .lineS = 9.0,   .colorS = 0.0, .format = 0};
-static const sstv_mode_t PD50        =  {.decMode = PD_50,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 50,     .lineTime = 61.0133,       .lineS = 20.0,  .colorS = 0.0, .format = 0};
-static const sstv_mode_t PD90        =  {.decMode = PD_90,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 90,     .lineTime = 113.493,       .lineS = 20.0,  .colorS = 0.0, .format = 0};
-static const sstv_mode_t NULL_mode   =  {.decMode = NULL_type,   .color = GBR,   .row = 0,       .col = 0,       .tranTime = 0,      .lineTime = 0,             .lineS = 0,     .colorS = 0,   .format = 0};
+static const sstv_mode_t Robot36     =  {.decMode = ROBOT_36,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 36,     .lineTime = 45.0    / 1000.0,    .colorTime =  45.0 / 3000.0,        .colTimeSample = (45.0 * SFREQ) / 1000.0,       .colSampleL = ((45.0 * SFREQ) / (1000.0 * 320.0)),         .pixelsLost = 0,   .colFrac = ((45.0 * SFREQ) / (1000.0 * 320.0)) - (uint8_t) ((45.0 * SFREQ) / (1000.0 * 320.0)),         .lineS = 10.5,  .colorS = 4.5, .format = 1};
+static const sstv_mode_t Robot72     =  {.decMode = ROBOT_72,    .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 72,     .lineTime = 92.0    / 1000.0,    .colorTime =  92.0 / 3000.0,        .colTimeSample = (92.0 * SFREQ) / 1000.0,       .colSampleL = ((92.0 * SFREQ) / (1000.0 * 320.0)),         .pixelsLost = 0,   .colFrac = ((92.0 * SFREQ) / (1000.0 * 320.0)) -  (uint8_t) ((92.0 * SFREQ) / (1000.0 * 320.0)),        .lineS = 12.0,  .colorS = 6.0, .format = 2};
+static const sstv_mode_t Martin1     =  {.decMode = MARTIN_1,    .color = GBR,   .row = 320,     .col = 256,     .tranTime = 114,    .lineTime = 146.432 / 1000.0,    .colorTime =  146.432 / 3000.0,     .colTimeSample = (146.432 * SFREQ) / 1000.0,    .colSampleL = ((146.432 / 320.0) * (SFREQ / 1000.0)),      .pixelsLost = (COLOUR_HISTORY_NUM / ((146.432 / 320.0) * (SFREQ / 1000.0))),   .colFrac = ((146.432 * SFREQ) / (1000.0 * 320.0)) - (uint8_t) ((146.432 * SFREQ) / (1000.0 * 320.0)),   .lineS = 4.862, .colorS = 0.0, .format = 0};
+static const sstv_mode_t Martin2     =  {.decMode = MARTIN_2,    .color = GBR,   .row = 256,     .col = 160,     .tranTime = 58,     .lineTime = 73.216  / 1000.0,    .colorTime =  73.216 / 3000.0,      .colTimeSample = (73.216 * SFREQ) / 1000.0,     .colSampleL = ((73.216 * SFREQ) / (1000.0 * 256.0)),       .pixelsLost = 0,   .colFrac = ((73.216 * SFREQ) / (1000.0 * 256.0)) - (uint8_t) ((73.216 * SFREQ) / (1000.0 * 256.0)),     .lineS = 4.862, .colorS = 0.0, .format = 0};
+static const sstv_mode_t Scottie2    =  {.decMode = SCOTTIE_2,   .color = GBR,   .row = 256,     .col = 160,     .tranTime = 71,     .lineTime = 88.064  / 1000.0,    .colorTime =  8.064 / 3000.0,       .colTimeSample = (8.064 * SFREQ) / 1000.0,      .colSampleL = ((8.064 *  SFREQ) / (1000.0 * 256.0)),       .pixelsLost = 0,   .colFrac = ((8.064 * SFREQ) / (1000.0 * 256.0)) - (uint8_t) ((8.064 * SFREQ) / (1000.0 * 256.0)),       .lineS = 9.0,   .colorS = 0.0, .format = 0};
+static const sstv_mode_t PD50        =  {.decMode = PD_50,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 50,     .lineTime = 61.0133 / 1000.0,    .colorTime =  61.0133 / 3000.0,     .colTimeSample = (61.0133 * SFREQ) / 1000.0,    .colSampleL = ((61.0133 * SFREQ) / (1000.0 * 320.0)),      .pixelsLost = 0,   .colFrac = ((61.0133 * SFREQ) / (1000.0 * 320.0)) - (uint8_t) ((61.0133 * SFREQ) / (1000.0 * 320.0)),   .lineS = 20.0,  .colorS = 0.0, .format = 0};
+static const sstv_mode_t PD90        =  {.decMode = PD_90,       .color = YCRCB, .row = 320,     .col = 240,     .tranTime = 90,     .lineTime = 113.493 / 1000.0,    .colorTime =  113.493 / 3000.0,     .colTimeSample = (113.493 * SFREQ) / 1000.0,    .colSampleL = ((113.493 * SFREQ) / (1000.0 * 320.0)),      .pixelsLost = 0,   .colFrac = ((113.493 * SFREQ) / (1000.0 * 320.0)) - (uint8_t) ((113.493 * SFREQ) / (1000.0 * 320.0)),   .lineS = 20.0,  .colorS = 0.0, .format = 0};
+static const sstv_mode_t NULL_mode   =  {.decMode = NULL_type,   .color = GBR,   .row = 0,       .col = 0,       .tranTime = 0,      .lineTime = 0,                   .colorTime =  0,                    .colTimeSample = 0,                             .colSampleL = 0,                                           .pixelsLost = 0,             .colFrac = 0,                                                                                           .lineS = 0,     .colorS = 0,   .format = 0};
 
 // Init vars flag
-static bool init_vars = true;
+static bool init_vars = true; 
 
-// VIS CODE Flags
-#define VIS_BITS_TOTAL   8                        // Number of bits in a VIS code
-#define SAMPLES_PER_BIT  (uint16_t) ((SFREQ / 1000) * 30)      // Number of samples per bit (~30ms)  
-
+// VIS Code Vars
 static bool new_vis_code = true;
-static uint8_t VIS_Code   = 0;            // Stores the VIS Code 
-
 static uint64_t sample_count = 0;
-static uint32_t VIS_CODE_upper = 0;
-static uint32_t VIS_CODE_lower = 0;
+
+static uint8_t VIS_Code   = 0;                  // Stores the VIS Code 
+static uint32_t VIS_CODE_upper = 0;             // VIS Code 0 history
+static uint32_t VIS_CODE_lower = 0;             // VIS Code 1 history
 
 static sstv_mode_t curr_VIS_mode = NULL_mode;
-
-// Diffrential time
-volatile float diffrential_time = 0;
 
 // Global FSM Holder
 static Decoder_FSM_Val h_prevState     = h_idle;        // PrevState Freq
@@ -54,36 +47,54 @@ static Decoder_FSM_Val h_currState     = h_idle;        // CurrState Freq
 static Decoder_FSM_Val h_nextState     = h_idle;        // NextState Freq
 static Decoder_FSM_Val h_nextState_exp = h_idle;        // NextState exp Freq
 
+// History Flags
 static uint32_t in_bounds_history  = 0;
 static uint64_t in_bounds_time_history = 0;
-
-// Store VIS Mode and Colour Decoding 
-#define COLOUR_HISTORY_NUM  16
-#define COLOUR_HISTORY      0xFFFF
-
-#define GET_MODE_WIDTH      curr_VIS_mode.row
-#define GET_MODE_HEIGHT     curr_VIS_mode.col
-#define GET_COL_TIME        curr_VIS_mode.lineTime / 1000.0
-static bool alt_sample = 0;
-
-//#define SAMPLES_LOST        (uint8_t) (COLOUR_HISTORY_NUM / (GET_COL_TIME))
-#define SAMPLES_LOST        2
-//#define COLOUR_SAMPLE       (uint16_t) (GET_COL_TIME * SFREQ)
-#define COLOUR_SAMPLE       6 //alt_sample ? 6 : 7
-//#define COLOUR_OFFSET       COLOUR_SAMPLE >> 1                  // Div by 2
-
-// Current Colour to write
-#define curr_y              (colour_count / 6) % 320
-static uint16_t curr_x       = 0;
-
-static uint16_t colour_count = 0;
-static uint16_t sync_count = 0;
-
+// History Flags Colour
 static uint16_t colour_history = 0;
 static uint16_t sync_history = 0;
+
+// Correction Flags
+volatile uint8_t pixel_corr = 3;
+volatile uint8_t samples_lost_corr = 7;
+
+volatile uint8_t clipping_reduction = 120;
+volatile uint8_t underflow_reduction = 50;
+#define CLIPPING_RED clipping_reduction
+#define UNDERFLOW_RED underflow_reduction
+
+#define sample_read_offset  10
+
+// Easy Grab Macros
+#define GET_MODE_WIDTH      curr_VIS_mode.row
+#define GET_MODE_HEIGHT     curr_VIS_mode.col
+#define GET_LINE_TIME       curr_VIS_mode.lineTime
+#define GET_COL_TIME        curr_VIS_mode.colorTime
+#define COL_TIME_SAMPLES    curr_VIS_mode.colTimeSample
+#define COLOUR_SAMPLE       curr_VIS_mode.colSampleL
+#define COLOUR_FRAC         curr_VIS_mode.colFrac
+
+#define PIXELS_LOST        curr_VIS_mode.pixelsLost + pixel_corr
+#define SAMPLES_LOST       COLOUR_HISTORY_NUM + samples_lost_corr
+
+// Coordinate vars
+static uint16_t curr_x = 0;  
+static uint16_t curr_y = 0;
+
+static uint16_t colSec1 = 0;
+static uint16_t colSec2 = 0;
+
+static float error_accum = 0;
+static bool extra_sam = 0; 
+
+// Colour Decoding Counters
+static int colour_count = 0;
+static int next_count = 0;
+static uint16_t sync_count = 0;
+
+// Colour Decode Flags
 static bool in_colour_flag = false;
 static bool in_sync_flag = false;
-
 // First enter flags
 static bool sync_first_enter = false;
 static bool colour_first_enter = false;
@@ -129,7 +140,7 @@ int header_fsm(uint16_t freq) {
             break;
 
         case (SYNC2):
-                init_vars = true;
+                if (!init_vars) init_vars = true;
 
                 nextState_thresh(freq, h_start, h_idle);
             break;
@@ -148,6 +159,7 @@ int header_fsm(uint16_t freq) {
 
                     // Colour Decoding Vars
                     colour_count = 0;
+                    next_count = -1;           // Smaller than colour count
                     sync_count = 0;
 
                     colour_history = 0;
@@ -159,8 +171,15 @@ int header_fsm(uint16_t freq) {
                     sync_first_enter = false;
                     colour_first_enter = false;
 
+                    error_accum = 0;
+                    extra_sam   = 0;
+
+                    colSec1 = 0;
+                    colSec2 = 0;
+
                     // Pixel Coorinates
-                    curr_x = PIX_WIDTH;
+                    curr_x = PIX_WIDTH - 1;
+                    curr_y = PIXELS_LOST;
                 }
 
                 nextState_intoBound(freq, h_code, h_idle);
@@ -186,7 +205,7 @@ int header_fsm(uint16_t freq) {
             }
 
             // When 30 ms - new sample can be written
-            if (!(sample_count % SAMPLES_PER_BIT)) {
+            if (!((sample_count +  sample_read_offset) % SAMPLES_PER_BIT)) {
                 new_vis_code = true;
                 VIS_CODE_upper = VIS_CODE_lower = 0;
             }
@@ -252,32 +271,41 @@ void colour_decoder(uint16_t freq) {
         }
 
         // Colour Decoding Logic    //
+        //if (!(colour_count % 50)) printf("curr_x #%d, curr_y #%d\n", curr_x, curr_y);
 
         // New Sample
-        if (!(colour_count % COLOUR_SAMPLE)) {
-            // Change Colour Sample from 6 to 7 or back
-            //alt_sample++;      
-            //printf("%d,%d\n", curr_x, curr_y);
-            //imageBuffer[PIX(curr_x, curr_y)] = TFT_AQUAMARINE;
-            //ili9341_drawRect(50, curr_y, 1, 1, TFT_AQUAMARINE);
-            uint8_t colour64 = ((2300 - freq) << 4) / 325;
-            uint8_t colour32 = ((2300 - freq) << 3) / 325;
+        if ((colour_count - next_count) > 0) {
+            // Error accum logic
+            error_accum += COLOUR_FRAC;
+            if (error_accum > 1) { extra_sam = 1; error_accum -= 1;}
+            else                 { extra_sam = 0;}
+
+            // Next count increment
+            next_count = colour_count + COLOUR_SAMPLE;
+
+            // Colour Decoding Logic
+            //                          upper clip                                         lower clip                                          non
+            uint16_t freq_adjusted = (freq > c_line.freqCol) ? (freq - CLIPPING_RED) : ((freq < c_line.freqCol_lb) ? (freq + UNDERFLOW_RED) : freq); 
+            uint16_t colour64 = (((float) (freq_adjusted - c_line.freqCol_lb)) / c_line.freqDiv) * 64.0;
 
             // Different colour Sections
-            switch(colour_count / (GET_MODE_WIDTH * COLOUR_SAMPLE)) {
+            switch((uint8_t) (colour_count / COL_TIME_SAMPLES)) {
                 // Green
                 case 0: 
-                    imageBuffer[PIX(curr_x, curr_y)] = (colour64 << 6);
+                    curr_y++;
+                    imageBuffer[PIX(curr_x, curr_y)] = (colour64 << 5);
                     break;
 
                 // Blue
                 case 1: 
-                    imageBuffer[PIX(curr_x, curr_y)] = (imageBuffer[PIX(curr_x, curr_y)]) | colour32;
+                    curr_y = ++colSec1;
+                    imageBuffer[PIX(curr_x, curr_y)] = (imageBuffer[PIX(curr_x, curr_y)]) | (colour64 >> 1);
                     break;
                 
                 // Red
                 case 2: 
-                    imageBuffer[PIX(curr_x, curr_y)] = (colour32 << 11) | (imageBuffer[PIX(curr_x, curr_y)]);
+                    curr_y = ++colSec2;
+                    imageBuffer[PIX(curr_x, curr_y)] = ((colour64 >> 1) << 11) | (imageBuffer[PIX(curr_x, curr_y)]);
                     break;
 
                 default: 
@@ -299,9 +327,13 @@ void colour_decoder(uint16_t freq) {
 
             // Reset Vars
             sync_first_enter = false;
+            colSec1 = 0;
+            colSec2 = 0;
 
             // Updating Coordinates
-            colour_count = SAMPLES_LOST;    // History loses first few samples     
+            colour_count = SAMPLES_LOST;    // History loses first few samples  
+            next_count = -1;  
+            curr_y = PIXELS_LOST;
             curr_x--;
             //ili9341_drawRect(curr_x, 50, 2, 2, TFT_AQUAMARINE);
         }
